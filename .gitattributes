@@ -1,0 +1,15 @@
+*.json linguist-detectable=true
+*.json linguist-documentation=false
+*.json linguist-language=JSON
+
+*.yaml linguist-detectable=true
+*.yaml linguist-documentation=false
+*.yaml linguist-language=YAML
+
+*.yml linguist-detectable=true
+*.yml linguist-documentation=false
+*.yml linguist-language=YAML
+
+*.hlpp linguist-detectable=true
+*.hlpp linguist-documentation=false
+*.hlpp linguist-language=HL++
