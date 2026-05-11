@@ -25,3 +25,7 @@
 *.toml linguist-detectable=true
 *.toml linguist-documentation=false
 *.toml linguist-language=TOML
+
+*.packages linguist-detectable=true
+*.packages linguist-documentation=false
+*.packages linguist-language=TEXT
