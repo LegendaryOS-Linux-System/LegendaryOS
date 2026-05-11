@@ -10,6 +10,18 @@
 *.yml linguist-documentation=false
 *.yml linguist-language=YAML
 
-*.hlpp linguist-detectable=true
-*.hlpp linguist-documentation=false
-*.hlpp linguist-language=HL++
+*.rb linguist-detectable=true
+*.rb linguist-documentation=false
+*.rb linguist-language=RUBY
+
+*.desktop linguist-detectable=true
+*.desktop linguist-documentation=false
+*.desktop linguist-language=INI
+
+*.conf linguist-detectable=true
+*.conf linguist-documentation=false
+*.conf linguist-language=YAML
+
+*.toml linguist-detectable=true
+*.toml linguist-documentation=false
+*.toml linguist-language=TOML
