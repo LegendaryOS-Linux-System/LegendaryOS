@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+load '/usr/share/LegendaryOS/tools/lpm/main.rb'
