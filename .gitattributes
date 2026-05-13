@@ -18,6 +18,10 @@
 *.desktop linguist-documentation=false
 *.desktop linguist-language=INI
 
+*.repo linguist-detectable=true
+*.repo linguist-documentation=false
+*.repo linguist-language=INI
+
 *.conf linguist-detectable=true
 *.conf linguist-documentation=false
 *.conf linguist-language=YAML
@@ -25,6 +29,14 @@
 *.toml linguist-detectable=true
 *.toml linguist-documentation=false
 *.toml linguist-language=TOML
+
+os-release linguist-detectable=true
+os-release linguist-documentation=false
+os-release linguist-language=SHELL
+
+hostname linguist-detectable=true
+hostname linguist-documentation=false
+hostname linguist-language=TEXT
 
 *.packages linguist-detectable=true
 *.packages linguist-documentation=false
