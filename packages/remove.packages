@@ -1,1 +1,68 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                  LegendaryOS — remove.packages                             ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+#
+# Pakiety usuwane po instalacji — odchudzamy bazową Fedorę
+# z rzeczy które dostajemy w @kde-desktop-environment a nie potrzebujemy
+# ──────────────────────────────────────────────────────────────────────────────
 
+# Zbędne gry KDE
+kmines
+kpat
+ksudoku
+klines
+kblocks
+bovo
+kapman
+kbounce
+kfourinline
+kgoldrunner
+kigo
+killbots
+kiriki
+kjumpingcube
+klickety
+knavalbattle
+knetwalk
+kolorslines
+konquest
+kreversi
+kshisen
+ksirk
+kspaceduel
+ksquares
+ksudoku
+ktuberling
+kubrick
+palapeli
+picmi
+
+# Zbędne edukacyjne KDE (jeśli nie potrzebujesz)
+# Odkomentuj jeśli chcesz je usunąć:
+# cantor
+# kalgebra
+# kbruch
+# kgeography
+# khangman
+# kig
+# klettres
+# kmplot
+# ktouch
+# kturtle
+# kwordquiz
+# marble
+# parley
+# step
+
+# Akonadi — KDE PIM framework (wymagany przez KMail/KOrganizer)
+# Usuń TYLKO jeśli nie planujesz używać KMail/Kalendarz KDE
+# akonadi-server
+# akonadi-import-wizard
+
+# Modem Manager — niepotrzebny bez modemu GSM
+ModemManager
+
+# Pakiety które zazwyczaj nie są potrzebne na desktopie deweloperskim
+# (zostają dostarczone przez @kde-desktop-environment ale można je wyrzucić)
+# kmail                          # Odkomentuj jeśli wolisz Thunderbirda
+# kontact                        # Odkomentuj jeśli wolisz inne PIM
