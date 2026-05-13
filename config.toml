@@ -1,1 +1,98 @@
+[project]
+name         = "LegendaryOS"
+version      = "0.0.1"
+description  = "Fedora-based OS for developers and gamers"
+author       = "LegendaryOS Team"
+license      = "GPL-3.0"
+base_distro  = "fedora"
+base_version = 44
+arch         = "x86_64"
 
+# ── System ────────────────────────────────────────────────────────────────────
+[system]
+hostname = "legendaryos"
+
+# Język interfejsu: polski jako główny, angielski jako fallback
+locale   = "pl_PL.UTF-8"
+language = "pl_PL:pl:en_US:en"
+timezone = "Europe/Warsaw"
+keyboard = "pl"
+
+# SELinux — enforcing to bezpieczne ustawienie domyślne
+# Na potrzeby gamingu i devu możesz zmienić na "permissive"
+selinux  = "enforcing"
+
+firewall = true
+
+# Usługi startujące przy bootowaniu
+services_enable = [
+    "sshd",               # SSH — przydatne dla deva
+    "NetworkManager",     # Zarządzanie siecią
+    "bluetooth",          # Bluetooth
+    "cups",               # Drukowanie
+    "fstrim.timer",       # TRIM dla SSD — WAŻNE dla wydajności
+    "systemd-timesyncd",  # Synchronizacja czasu NTP
+    "plocate-updatedb.timer" # Indeksowanie plików (locate)
+]
+
+services_disable = [
+    "ModemManager",       # Zbędne jeśli nie używasz modemów GSM
+    "avahi-daemon"        # mDNS — opcjonalne, możesz włączyć jeśli potrzebujesz
+]
+
+# ── Desktop — KDE Plasma ──────────────────────────────────────────────────────
+[desktop]
+environment    = "kde"
+display_server = "wayland"   # Wayland jako domyślny; X11 dostępny jako fallback
+auto_login     = false
+auto_login_user = ""
+
+# ── Boot ──────────────────────────────────────────────────────────────────────
+[boot]
+bootloader = "grub2"
+
+# quiet         — ukrywa komunikaty kernela podczas bootu (czystszy splash)
+# splash        — pokazuje Plymouth splash screen
+# amd_iommu / intel_iommu — wymagane do PCI passthrough / VFIO (opcjonalne, zostaw jeśli nie potrzebujesz)
+# mitigations=off — WYŁĄCZA łatki Spectre/Meltdown → +5-15% wydajności w grach
+#                   UWAGA: ryzyko bezpieczeństwa, usuń jeśli to nie jest prywatna maszyna
+kernel_args = "quiet splash mitigations=off"
+
+splash   = true
+timeout  = 5
+
+# ── Anaconda Installer ────────────────────────────────────────────────────────
+# Generuje gotowy instalator graficzny Anacondy z predefiniowanymi ustawieniami
+[anaconda]
+enabled            = true
+kickstart_embed    = true
+product_name       = "LegendaryOS"
+product_version    = "1.0.0"
+webui              = true        # Nowy WebUI Anacondy (Fedora 37+)
+hide_shell         = false
+default_lang       = "pl_PL.UTF-8"
+default_keyboard   = "pl"
+default_timezone   = "Europe/Warsaw"
+root_password_lock = true        # Blokada konta root — używaj sudo
+default_user       = "user"
+default_user_groups = ["wheel", "audio", "video", "gamemode", "input", "render"]
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+[build]
+output_dir   = "build/output"
+cache_dir    = "build/cache"
+compression  = "zstd"       # zstd = szybszy niż xz, mniejszy niż gzip — dobry wybór dla ISO
+iso_label    = "LEGENDARYOS_1_0"
+iso_filename = "LegendaryOS-1.0.0-fedora44.x86_64.iso"
+jobs         = 4
+clean_build  = false
+
+# ── Container / bootc ─────────────────────────────────────────────────────────
+[container]
+enabled    = true
+registry   = "ghcr.io/twoj-github-nick"   # ← zmień na swój
+image      = "legendaryos"
+tag        = "1.0.0"
+push       = false      # zmień na true żeby push był automatyczny
+sign_image = false
+bootc_mode = true
