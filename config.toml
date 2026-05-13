@@ -90,7 +90,7 @@ clean_build  = false
 # ── Container / bootc ─────────────────────────────────────────────────────────
 [container]
 enabled    = true
-registry   = "ghcr.io/twoj-github-nick"   # ← zmień na swój
+registry   = "ghcr.io/michal92299"   # ← zmień na swój
 image      = "legendaryos"
 tag        = "1.0.0"
 push       = false      # zmień na true żeby push był automatyczny
