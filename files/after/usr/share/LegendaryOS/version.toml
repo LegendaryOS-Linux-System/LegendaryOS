@@ -1,0 +1,7 @@
+[LegendaryOS]
+version = "0.1"
+release_date = "2025-05-14"
+base = "Fedora"
+base_version = "44"
+edition = "KDE"
+architecture = "x86_64"
