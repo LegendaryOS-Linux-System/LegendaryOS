@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'fileutils'
+require 'optparse'
+
+# Ścieżki systemowe
+BASE_DIR = "/usr/share/LegendaryOS/motd"
+THEME_DIR = File.join(BASE_DIR, "theme")
+TEMPLATE_PATH = File.join(BASE_DIR, "template/template.md")
+CONFIG_FILE = File.expand_path("~/.config/legendaryos/motd.pref")
+
+# Wyjście, jeśli Midnight Commander działa w tle
+exit 0 if ENV['MC_SID']
+
+# 1. Zarządzanie konfiguracją i flagami
+options = { theme: "default" }
+
+# Odczyt zapisanego motywu
+if File.exist?(CONFIG_FILE)
+  saved_theme = File.read(CONFIG_FILE).strip
+  options[:theme] = saved_theme unless saved_theme.empty?
+end
+
+# Parsowanie argumentów (flagi)
+OptionParser.new do |opts|
+  opts.banner = "Użycie: legendary-motd [opcje]"
+  opts.on("-t", "--theme NAME", "Zmień motyw wizualny") do |t|
+    options[:theme] = t
+    # Zapisywanie wyboru użytkownika
+    FileUtils.mkdir_p(File.dirname(CONFIG_FILE))
+    File.write(CONFIG_FILE, t)
+  end
+end.parse!
+
+# 2. Dobór plików
+theme_file = File.join(THEME_DIR, "#{options[:theme]}.json")
+theme_file = File.join(THEME_DIR, "default.json") unless File.exist?(theme_file)
+
+tip_files = Dir.glob(File.join(BASE_DIR, "*.md"))
+exit 0 if tip_files.empty?
+selected_tip = tip_files.sample
+
+# 3. Pobieranie wariantu dystrybucji
+distro_variant = "LegendaryOS"
+if File.exist?("/etc/xdg/kcm-about-distrorc")
+  variant_line = File.readlines("/etc/xdg/kcm-about-distrorc").find { |l| l.start_with?("Variant=") }
+  distro_variant = variant_line.split("=").last.strip if variant_line
+end
+
+# 4. Przetwarzanie szablonu
+if File.exist?(TEMPLATE_PATH)
+  template_content = File.read(TEMPLATE_PATH)
+  tip_content = File.read(selected_tip)
+
+  # Podmiana markerów
+  output = template_content.gsub("%VARIANT%", distro_variant)
+  output = output.gsub("%TIP%", tip_content)
+  output = output.gsub('~', "\n")
+
+  # Wyświetlanie za pomocą glow
+  IO.popen(["/usr/bin/glow", "-s", theme_file, "-w", "78", "-"], "w") do |glow|
+    glow.puts output
+  end
+else
+  warn "Błąd: Nie znaleziono szablonu w #{TEMPLATE_PATH}"
+  exit 1
+end
