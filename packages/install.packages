@@ -1,206 +1,171 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║              LegendaryOS — packages/install.packages                       ║
+# ║         KDE Plasma · Dev + Gaming · Fedora 44 · x86_64                    ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
 # ════════════════════════════════════════════════════════════════════════════
-# 1. KDE PLASMA — środowisko graficzne
+# 0. KERNEL — Nobara + Fedora (oba dostępne, Nobara jako domyślny)
+# ════════════════════════════════════════════════════════════════════════════
+# Nobara kernel: lepsze schedulery (BORE/LAVD), poprawki dla gamingu,
+# Steam Deck patches, HDR support, fsync/futex2.
+# Fedora kernel zostaje jako fallback — można wybrać z GRUB.
+#
+# UWAGA: repos/nobara.repo musi być dodany (plik repos/nobara.repo).
+# Nobara jest domyślnym kernelem — ustawia to skrypt scripts/after/00-kernel.sh
+
+kernel                           # Fedora kernel (fallback, dostępny w GRUB)
+kernel-modules
+kernel-modules-extra
+kernel-headers
+kernel-devel
+
+# Nobara kernel instalowany przez scripts/after/00-kernel.sh via dnf
+# (nie da się tu wpisać bo wymaga osobnego repo i ustawienia jako default)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 1. KDE PLASMA
 # ════════════════════════════════════════════════════════════════════════════
 
-# Pełna grupa KDE (plasma + aplikacje + wayland)
 @kde-desktop-environment
 
-# Dodatkowe integracje i narzędzia KDE
-plasma-discover                  # Centrum oprogramowania (GUI dla dnf)
-plasma-discover-notifier         # Powiadomienia o aktualizacjach
-plasma-browser-integration       # Integracja przeglądarki z KDE
-plasma-nm                        # Zarządzanie siecią w KDE
-plasma-pa                        # PulseAudio / PipeWire w KDE
-plasma-vault                     # Szyfrowane foldery
-plasma-thunderbolt               # Zarządzanie Thunderbolt
-plasma-sdk                       # Narzędzia deweloperskie KDE
-kdeplasma-addons                 # Dodatkowe widgety
-kdeconnect                       # Integracja z telefonem Android
-kinfocenter                      # Informacje o systemie
-kscreen                          # Zarządzanie monitorami
-kate                             # Zaawansowany edytor tekstu KDE
-dolphin                          # Menedżer plików KDE
-dolphin-plugins                  # Pluginy Dolphin (git, dropbox itp.)
-ark                              # Archiwizator (GUI)
-spectacle                        # Zrzuty ekranu
-gwenview                         # Przeglądarka zdjęć
-filelight                        # Wizualizacja zajętości dysku
-kcalc                            # Kalkulator
-konsole                          # Terminal KDE
+plasma-discover
+plasma-discover-notifier
+plasma-browser-integration
+plasma-nm
+plasma-pa
+plasma-vault
+plasma-thunderbolt
+plasma-sdk
+kdeplasma-addons
+kdeconnect
+kinfocenter
+kscreen
+kate
+dolphin
+dolphin-plugins
+ark
+spectacle
+gwenview
+filelight
+kcalc
+konsole
 
-# SDDM — domyślny display manager KDE
 sddm
-sddm-kcm                         # Konfiguracja SDDM z KDE
+sddm-kcm
 
-# Wayland
+xorg-x11-server-Xwayland
+qt5-qtwayland
+qt6-qtwayland
 plasma-wayland-protocols
-xwayland                         # Kompatybilność z aplikacjami X11 pod Waylandem
-qt5-qtwayland                    # Qt5 Wayland
-qt6-qtwayland                    # Qt6 Wayland
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 2. DŹWIĘK — PipeWire (nowoczesny, wymagany przez gaming i Wayland)
+# 2. DŹWIĘK — PipeWire
 # ════════════════════════════════════════════════════════════════════════════
 
-pipewire                         # Nowoczesny serwer audio/wideo
-pipewire-alsa                    # Kompatybilność z ALSA
-pipewire-pulseaudio              # Kompatybilność z PulseAudio (dla starszych aplikacji)
-pipewire-jack                    # Kompatybilność z JACK (audio pro)
-wireplumber                      # Session manager dla PipeWire
-pavucontrol-qt                   # Mixer audio (GUI)
-easyeffects                      # Equalizer / efekty audio (KDE-friendly)
+pipewire
+pipewire-alsa
+pipewire-pulseaudio
+pipewire-libjack
+wireplumber
+pavucontrol-qt
+easyeffects
 
 
 # ════════════════════════════════════════════════════════════════════════════
 # 3. GAMING
 # ════════════════════════════════════════════════════════════════════════════
 
-# Steam — wymaga RPM Fusion (dodaj repos/rpmfusion.repo)
 steam
-
-# Proton / Wine — uruchamianie gier Windows
-wine                             # Kompatybilność z aplikacjami Windows
-wine-mono                        # .NET dla Wine
-winetricks                       # Skrypty pomocnicze dla Wine
-proton-call                      # Uruchamianie gier przez Proton z CLI
-lutris                           # Launcher gier (GOG, Epic, Battle.net itp.)
-heroic-games-launcher            # Launcher Epic Games + GOG (GTK, działa pod KDE)
-
-# GameMode — optymalizacja CPU/GPU podczas grania
-gamemode                         # Daemon optymalizacji
-gamemoded                        # Usługa GameMode
-
-# Mangohud — overlay z FPS, GPU, CPU temp w grach
+wine
+wine-mono
+winetricks
+lutris
+gamemode
 mangohud
-goverlay                         # GUI do konfiguracji MangoHud
-
-# Vulkan — wymagany przez nowoczesne gry i DXVK
-vulkan-loader                    # Vulkan ICD loader
-vulkan-tools                     # vulkaninfo, vkcube
-mesa-vulkan-drivers              # Vulkan dla Intel/AMD (mesa)
-
-# Mesa — sterowniki OpenGL / Vulkan open source (AMD/Intel)
-mesa-dri-drivers                 # Podstawowe sterowniki DRI
-mesa-libGL                       # OpenGL
-mesa-libEGL                      # EGL
-mesa-va-drivers                  # VA-API (dekodowanie wideo GPU)
-mesa-vdpau-drivers               # VDPAU (dla NVIDIA via nouveau)
-
-# DXVK i VKD3D-Proton są dostarczane przez Steam/Proton automatycznie
-# ale przydatne też standalone:
-vkd3d                            # DirectX 12 → Vulkan
-
-# Kontrolery i joysticki
-jstest-gtk                       # Testowanie joysticka
-evdev                            # Obsługa urządzeń input
-SDL2                             # Biblioteka gamepad (wymagana przez większość gier)
-
-# Discord
-discord                          # Komunikacja (wymaga RPM Fusion lub Flatpak)
+goverlay
+vulkan-loader
+vulkan-tools
+mesa-vulkan-drivers
+mesa-dri-drivers
+mesa-libGL
+mesa-libEGL
+mesa-va-drivers
+SDL2
+jstest-gtk
+discord
 
 git
+gh
 
-# Języki programowania
+rust
+cargo
 ruby
 ruby-devel
-rust                             # Rust (rustc)
-cargo                            # Rust package manager
 
-# Docker / Podman / Kontenery
-podman                           # Rootless containers (Docker-compatible)
-podman-compose                   # docker-compose dla Podmana
-buildah                          # Budowanie obrazów OCI
-distrobox                        # Uruchamianie innych dystrybucji w kontenerze
+podman
+podman-compose
+buildah
+distrobox
 
-# Narzędzia sieciowe
-curl                             # HTTP client
-wget                             # Pobieranie plików
-
-bash-completion                  # Uzupełnianie tabulatorem dla bas
-
-# Narzędzia systemowe dla devów
-htop                             # Interaktywny monitor procesów
-btop                             # Nowoczesny monitor systemu (GPU, CPU, mem)
-iotop                            # Monitor I/O
-lsof                             # Lista otwartych plików
-sysstat                          # iostat, sar, mpstat
-inxi                             # Informacje o systemie
-hwinfo                           # Szczegółowe info o sprzęcie
-usbutils                         # lsusb
-pciutils                         # lspci
-jq                               # JSON procesor (CLI)
-yq                               # YAML procesor (CLI)
-ripgrep                          # rg — szybkie grep
-fd-find                          # fd — szybsze find
-bat                              # Lepszy cat z syntax highlighting
-eza                              # Nowoczesne ls (następca exa)
-fzf                              # Fuzzy finder
-zoxide                           # Inteligentny cd
-ncdu                             # Analiza zajętości dysku (TUI)
-duf                              # Nowoczesne df
-tldr                             # Uproszczone man pages
-man-db                           # Strony man
-man-pages
-man-pages-pl                     # Strony man po polsku
+curl
+wget
 
 
 # ════════════════════════════════════════════════════════════════════════════
 # 5. MULTIMEDIA
 # ════════════════════════════════════════════════════════════════════════════
 
-# Kodeki — wymagają RPM Fusion (dodaj repos/rpmfusion.repo)
-ffmpeg                           # Konwersja wideo/audio
+ffmpeg
 ffmpeg-libs
-gstreamer1                       # GStreamer framework
+gstreamer1
 gstreamer1-plugins-base
 gstreamer1-plugins-good
 gstreamer1-plugins-bad-free
-gstreamer1-plugins-bad-freeworld # Kodeki non-free (RPM Fusion)
-gstreamer1-plugins-ugly          # MP3 i inne (RPM Fusion)
+gstreamer1-plugins-bad-freeworld
+gstreamer1-plugins-ugly
 gstreamer1-plugin-openh264
-gstreamer1-vaapi                 # GPU-accelerated video
+gstreamer1-vaapi
 
-# Odtwarzacze
-mpv                              # Lekki odtwarzacz wideo
-haruna                           # KDE-native frontend dla mpv
+mpv
+haruna
 
-# Czcionki
-google-noto-fonts-common         # Noto Fonts (unicode coverage)
+google-noto-fonts-common
 google-noto-serif-fonts
 google-noto-sans-fonts
 google-noto-mono-fonts
-fira-code-fonts                  # Fira Code (dla programistów — ligatury)
-jetbrains-mono-fonts             # JetBrains Mono
-cascadia-fonts-all               # Cascadia Code (Microsoft)
-liberation-fonts                 # Liberation (Arial/Times replacements)
-dejavu-fonts-all                 # DejaVu fonts
-gnu-free-fonts-common            # GNU FreeFont
+fira-code-fonts
+jetbrains-mono-fonts
+cascadia-fonts-all
+liberation-fonts
+dejavu-fonts-all
+gnu-free-fonts-common
 
 
 # ════════════════════════════════════════════════════════════════════════════
 # 6. PRZEGLĄDARKA I KOMUNIKACJA
 # ════════════════════════════════════════════════════════════════════════════
 
-firefox                          # Firefox (lub zainstaluj via Flatpak dla nowszej wersji)
-thunderbird                      # Klient e-mail
+firefox
+thunderbird
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 7. BIURO I PRODUKTYWNOŚĆ
+# 7. BIURO
 # ════════════════════════════════════════════════════════════════════════════
 
-libreoffice                      # LibreOffice (pełny pakiet biurowy)
-libreoffice-langpack-pl          # LibreOffice po polsku
-hunspell-pl                      # Słownik polski (spell check)
-hunspell-en-US                   # Słownik angielski
+libreoffice
+libreoffice-langpack-pl
+hunspell-pl
+hunspell-en-US
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 8. SYSTEM — narzędzia ogólne i bezpieczeństwo
+# 8. SYSTEM
 # ════════════════════════════════════════════════════════════════════════════
 
-# Archiwizatory
 tar
 gzip
 bzip2
@@ -208,48 +173,37 @@ xz
 zstd
 unzip
 zip
-p7zip                            # 7-Zip
+p7zip
 p7zip-plugins
-unrar                            # RAR (wymaga RPM Fusion non-free)
+unrar
 
-# Sieć
 NetworkManager
 NetworkManager-wifi
 NetworkManager-bluetooth
-NetworkManager-openvpn           # VPN OpenVPN integration
-NetworkManager-openconnect       # Cisco AnyConnect
+NetworkManager-openvpn
+openssh
 
-# Bezpieczeństwo
-gnupg2                           # GnuPG — podpisywanie/szyfrowanie
-seahorse                         # Menedżer kluczy KDE-compatible
-keepassxc                        # Menedżer haseł
+gnupg2
+seahorse
+keepassxc
 
-# Drukowanie
-cups                             # System drukowania
-system-config-printer            # Konfiguracja drukarek (GUI)
+cups
+system-config-printer
 
-# Bluetooth
-bluez                            # Bluetooth stack
-bluez-tools                      # Narzędzia CLI dla Bluetooth
+bluez
+bluez-tools
 
-# Polskie wsparcie językowe
-langpacks-pl                     # Paczka językowa pl
-glibc-langpack-pl                # Locale pl_PL
-glibc-langpack-en                # Locale en_US
-ibus-libpinyin                   # Opcjonalne wejście CJK (usuń jeśli nie potrzebujesz)
+langpacks-pl
+glibc-langpack-pl
+glibc-langpack-en
 
-# Aktualizacje firmware
-fwupd                            # Linux Vendor Firmware Service
+fwupd
 fwupd-plugin-flashrom
 
-# Flatpak — wymagany do instalacji VS Code, Spotify itp.
-flatpak                          # Flatpak runtime
-plasma-discover-flatpak          # Integracja Flatpak z KDE Discover
+flatpak
+plasma-discover-flatpak
 
-# Misc
-plocate                          # Szybki locate (indeksowanie plików)
+plocate
 bash
 sudo
-polkit                           # PolicyKit — autoryzacja
-exfatprogs                       # Obsługa exFAT (karty SD)
-dosfstools                       # Obsługa FAT32
+polkit
