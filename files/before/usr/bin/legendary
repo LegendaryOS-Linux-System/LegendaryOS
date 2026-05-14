@@ -1,1 +1,25 @@
+#!/usr/bin/env ruby
 
+TOOL_DIR = "/usr/share/LegendaryOS/tools/legendary"
+
+# W trybie deweloperskim (poza systemem) szukamy main.rb względem tego pliku
+source_dir =
+  if File.exist?(File.join(TOOL_DIR, "main.rb"))
+    TOOL_DIR
+  else
+    # dev fallback – trzy poziomy wyżej względem usr/bin/legendary
+    File.expand_path("../../..", __FILE__)
+  end
+
+main_rb = File.join(source_dir, "main.rb")
+
+unless File.exist?(main_rb)
+  warn "\e[1m\e[91m✘  legendary: cannot find main.rb\e[0m"
+  warn "\e[90m   Looked in: #{source_dir}\e[0m"
+  exit 127
+end
+
+$LOAD_PATH.unshift(source_dir)
+$LOAD_PATH.unshift(File.join(source_dir, "src"))
+
+load main_rb
