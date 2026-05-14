@@ -1,1 +1,11 @@
-
+[Desktop Entry]
+Name=update system
+GenericName=update-system
+Comment=Update LegendaryOS
+Exec=/usr/bin/legendaryos-update --look
+Icon=/usr/share/LegendaryOS/icons/update-system.png
+Terminal=false
+Type=Application
+Categories=Settings;System;
+Keywords=update;upgrade;linux;aktualizacja;
+StartupNotify=true
