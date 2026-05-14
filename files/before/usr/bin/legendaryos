@@ -1,1 +1,51 @@
 #!/usr/bin/env ruby
+
+TOOL_DIR = "/usr/share/LegendaryOS/tools/legendary"
+
+source_dir =
+  if File.exist?(File.join(TOOL_DIR, "main.rb"))
+    TOOL_DIR
+  else
+    File.expand_path("../../..", __FILE__)
+  end
+
+main_rb = File.join(source_dir, "main.rb")
+
+unless File.exist?(main_rb)
+  warn "\e[1m\e[91m✘  legendaryos: cannot find main.rb\e[0m"
+  warn "\e[90m   Looked in: #{source_dir}\e[0m"
+  exit 127
+end
+
+$LOAD_PATH.unshift(source_dir)
+$LOAD_PATH.unshift(File.join(source_dir, "src"))
+
+# Załaduj moduły potrzebne do welcome screena przed load main.rb
+require File.join(source_dir, "src", "colors")
+require File.join(source_dir, "src", "banner")
+require File.join(source_dir, "src", "system_info")
+require File.join(source_dir, "src", "toml_parser")
+require File.join(source_dir, "src", "cli")
+
+# `legendaryos` bez argumentów → welcome screen
+if ARGV.empty?
+  LegendaryOS::Banner.print_banner
+
+  los = LegendaryOS::SystemInfo.legendary_os_version
+  c   = LegendaryOS::Colors
+
+  puts "  #{c::VIVID_MAGENTA}#{c::BOLD}Witaj w LegendaryOS #{los[:version]} (#{los[:codename]})!#{c::RESET}"
+  puts
+  puts "  #{c::ELECTRIC_BLUE}#{c::BOLD}legendary#{c::RESET}#{c::ELECTRIC_BLUE} to narzędzie do zarządzania systemem.#{c::RESET}"
+  puts
+  puts "  #{c::LABEL}#{c::BOLD}Szybki start:#{c::RESET}"
+  puts "  #{c::ROYAL_PURPLE}▸#{c::RESET}  #{c::BOLD}#{c::VIVID_MAGENTA}legendary status#{c::RESET}   #{c::SUBTLE}— informacje o systemie#{c::RESET}"
+  puts "  #{c::ROYAL_PURPLE}▸#{c::RESET}  #{c::BOLD}#{c::ELECTRIC_BLUE}legendary update#{c::RESET}   #{c::SUBTLE}— aktualizacja systemu#{c::RESET}"
+  puts "  #{c::ROYAL_PURPLE}▸#{c::RESET}  #{c::BOLD}#{c::SKY_CYAN}legendary doctor#{c::RESET}   #{c::SUBTLE}— diagnostyka systemu#{c::RESET}"
+  puts "  #{c::ROYAL_PURPLE}▸#{c::RESET}  #{c::BOLD}#{c::LAVENDER}legendary help#{c::RESET}     #{c::SUBTLE}— pełna lista komend#{c::RESET}"
+  puts
+  LegendaryOS::Banner.separator
+  puts
+else
+  LegendaryOS::CLI.new(ARGV).run
+end
