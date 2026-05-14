@@ -2,25 +2,42 @@
 
 require 'fileutils'
 
-# Definicja ścieżek
-repo_url = "https://github.com/LegendaryOS-Linux-System/legendary.git"
-target_dir = "/usr/share/LegendaryOS/tools/legendary.git"
+# Konfiguracja repozytoriów
+base_dir = "/usr/share/LegendaryOS/tools"
+repos = {
+  "legendary.git" => "https://github.com/LegendaryOS-Linux-System/legendary.git",
+  "lpm.git"       => "https://github.com/LegendaryOS-Linux-System/lpm.git"
+}
 
-# Tworzenie struktury katalogów, jeśli nie istnieje
-# Wymaga uprawnień roota dla zapisu w /usr/share
+# Sprawdzenie uprawnień roota przed rozpoczęciem
+if Process.uid != 0
+  puts "Błąd: Brak uprawnień roota. Uruchom skrypt przy użyciu sudo."
+  exit 1
+end
+
+# Tworzenie głównego katalogu narzędzi
 begin
-  FileUtils.mkdir_p(File.dirname(target_dir))
-rescue Errno::EACCES
-  puts "Błąd: Brak uprawnień do zapisu w #{target_dir}. Uruchom skrypt z sudo."
+  FileUtils.mkdir_p(base_dir)
+rescue Errno::EACCES => e
+  puts "Błąd krytyczny: #{e.message}"
   exit 1
 end
 
-# Klonowanie repozytorium
-puts "Klonowanie repozytorium do #{target_dir}..."
+repos.each do |name, url|
+  target_path = File.join(base_dir, name)
+  
+  if Dir.exist?(target_path)
+    puts "Repozytorium #{name} już istnieje w #{target_path}. Pomijanie..."
+    next
+  end
 
-if system("git clone #{repo_url} #{target_dir}")
-  puts "Sukces: Repozytorium zostało sklonowane."
-else
-  puts "Błąd: Nie udało się sklonować repozytorium."
-  exit 1
+  puts "Klonowanie #{name} do #{target_path}..."
+  
+  if system("git clone #{url} #{target_path}")
+    puts "Sukces: #{name} zostało zainstalowane."
+  else
+    puts "Błąd: Nie udało się sklonować #{url}."
+  end
 end
+
+puts "\nProces zakończony."
