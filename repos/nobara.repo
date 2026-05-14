@@ -1,0 +1,27 @@
+# repos/nobara.repo
+# Nobara Project — kernel i poprawki dla gamingu
+# https://nobaraproject.org
+#
+# Nobara kernel zawiera:
+#   - Scheduler BORE/LAVD (lepszy czas odpowiedzi)
+#   - Steam Deck patches
+#   - HDR support
+#   - fsync / futex2
+#   - NTSYNC (szybszy Wine/Proton)
+#   - Poprawki dla ROG, Lenovo Legion itp.
+
+[nobara]
+name=Nobara Linux $releasever - $basearch
+baseurl=https://nobaraproject.org/repos/$releasever/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=https://nobaraproject.org/nobarakey.gpg
+priority=85
+
+[nobara-updates]
+name=Nobara Linux $releasever - $basearch - Updates
+baseurl=https://nobaraproject.org/repos/updates/$releasever/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=https://nobaraproject.org/nobarakey.gpg
+priority=85
