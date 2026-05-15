@@ -1,0 +1,34 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                    LegendaryOS Builder — user.toml                         ║
+# ║              Osobiste dane użytkownika / organizacji GitHub                 ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+#
+# ⚠  WAŻNE: Dodaj ten plik do .gitignore — nie commituj tokenów!
+#    .gitignore już zawiera "user.toml" jeśli używałeś legendaryos init
+#
+# Ten plik jest czytany gdy config.toml ma:
+#   registry = "custom"
+# Builder wtedy bierze registry z pola name poniżej.
+#
+# Finalne registry: ghcr.io/LegendaryOS-Linux-System
+# Finalne image:    ghcr.io/LegendaryOS-Linux-System/legendaryos:1.0.0
+
+[github]
+
+# Typ konta: "org" dla organizacji, "user" dla konta osobistego
+type = "org"
+
+# Nazwa organizacji lub użytkownika GitHub
+# https://github.com/LegendaryOS-Linux-System
+name = "LegendaryOS-Linux-System"
+
+# Token GitHub (Personal Access Token)
+# Wymagane scopes: write:packages, read:packages, delete:packages
+# Wygeneruj na: https://github.com/settings/tokens?type=beta
+#
+# OPCJA 1: Zostaw puste — builder zapyta interaktywnie przy każdym buildzie
+#           (bezpieczniejsze, token nie jest zapisany na dysku)
+# OPCJA 2: Wpisz token — builder użyje go automatycznie bez pytania
+#           (wygodne dla lokalnych buildów, NIE commituj do git!)
+#
+token = ""
