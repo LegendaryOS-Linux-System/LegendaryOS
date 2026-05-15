@@ -5,7 +5,7 @@ require 'net/http'
 
 # Konfiguracja
 base_dir = "/usr/share/LegendaryOS/tools"
-builder_url = "https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/v0.1/legendaryos-builder"
+builder_url = "https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/v0.1.2/legendaryos-builder"
 builder_target = "/usr/bin/legendaryos-builder"
 
 repos = {
