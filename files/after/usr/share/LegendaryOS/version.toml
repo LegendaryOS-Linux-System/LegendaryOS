@@ -1,6 +1,6 @@
 [LegendaryOS]
 version = "0.1"
-release_date = "2025-05-14"
+release_date = "2026-05-16"
 base = "Fedora"
 base_version = "44"
 edition = "KDE"
