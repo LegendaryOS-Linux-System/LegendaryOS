@@ -5,8 +5,14 @@ require 'net/http'
 
 # Konfiguracja
 base_dir = "/usr/share/LegendaryOS/tools"
-builder_url = "https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/v0.1.2/legendaryos-builder"
+
+# LegendaryOS Builder v0.3
+builder_url = "https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/v0.3/legendaryos-builder"
 builder_target = "/usr/bin/legendaryos-builder"
+
+# LegendaryOS Store v0.3
+store_url = "https://github.com/LegendaryOS-Linux-System/LegendaryOS-Store/releases/download/v0.3/legendaryos-store"
+store_target = "/usr/bin/legendaryos-store"
 
 repos = {
   "legendary.git" => "https://github.com/LegendaryOS-Linux-System/legendary.git",
@@ -38,17 +44,28 @@ repos.each do |name, url|
   end
 end
 
-# 2. Pobieranie LegendaryOS Builder
-puts "\n--- Instalacja LegendaryOS Builder ---"
-
+# 2. Pobieranie LegendaryOS Builder (Aktualizacja do v0.3)
+puts "\n--- Instalacja/Aktualizacja LegendaryOS Builder ---"
 puts "Pobieranie: #{builder_url} -> #{builder_target}"
-# Używamy curl dla prostoty i obsługi przekierowań (GitHub ich wymaga)
+
 if system("curl -L -o #{builder_target} #{builder_url}")
   puts "Nadawanie uprawnień do wykonywania (chmod a+x)..."
   FileUtils.chmod("a+x", builder_target)
-  puts "Sukces: LegendaryOS Builder został zainstalowany."
+  puts "Sukces: LegendaryOS Builder został zaktualizowany do wersji v0.3."
 else
-  puts "Błąd: Nie udało się pobrać pliku binarnego."
+  puts "Błąd: Nie udało się pobrać pliku binarnego Builder."
+end
+
+# 3. Pobieranie nowej rzeczy: LegendaryOS Store
+puts "\n--- Instalacja LegendaryOS Store ---"
+puts "Pobieranie: #{store_url} -> #{store_target}"
+
+if system("curl -L -o #{store_target} #{store_url}")
+  puts "Nadawanie uprawnień do wykonywania (chmod a+x)..."
+  FileUtils.chmod("a+x", store_target)
+  puts "Sukces: LegendaryOS Store został zainstalowany."
+else
+  puts "Błąd: Nie udało się pobrać pliku binarnego Store."
 end
 
 puts "\nProces zakończony."
