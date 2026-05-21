@@ -1,27 +1,38 @@
-# ╔══════════════════════════════════════════════════════════════════════════════╗
-# ║              LegendaryOS — packages/install.packages                       ║
-# ║         KDE Plasma · Dev + Gaming · Fedora 44 · x86_64                    ║
-# ╚══════════════════════════════════════════════════════════════════════════════╝
-
-
 # ════════════════════════════════════════════════════════════════════════════
-# 0. KERNEL — Nobara + Fedora (oba dostępne, Nobara jako domyślny)
+# 0. FIRMWARE — linux-firmware + fwupd
 # ════════════════════════════════════════════════════════════════════════════
-# Nobara kernel: lepsze schedulery (BORE/LAVD), poprawki dla gamingu,
-# Steam Deck patches, HDR support, fsync/futex2.
-# Fedora kernel zostaje jako fallback — można wybrać z GRUB.
-#
-# UWAGA: repos/nobara.repo musi być dodany (plik repos/nobara.repo).
-# Nobara jest domyślnym kernelem — ustawia to skrypt scripts/after/00-kernel.sh
 
-kernel                           # Fedora kernel (fallback, dostępny w GRUB)
-kernel-modules
-kernel-modules-extra
-kernel-headers
-kernel-devel
+# Bazowy firmware — WiFi, GPU, BT, NVMe, audio, karta sieciowa itp.
+# fedora-bootc ma już część firmware ale linux-firmware daje pełne pokrycie
+linux-firmware                   # Główna paczka firmware (Intel, AMD, Realtek, QCA...)
+linux-firmware-whence            # Licencje i źródła firmware
+amd-gpu-firmware                 # Firmware dla GPU AMD (oddzielna paczka w Fedorze 44)
+intel-gpu-firmware               # Firmware dla GPU Intel
+nvidia-gpu-firmware              # Firmware dla GPU NVIDIA (wymagane przez nouveau/GSP)
 
-# Nobara kernel instalowany przez scripts/after/00-kernel.sh via dnf
-# (nie da się tu wpisać bo wymaga osobnego repo i ustawienia jako default)
+# Firmware dla kart WiFi
+atheros-firmware                 # Qualcomm/Atheros WiFi (ath9k, ath10k, ath11k)
+brcmfmac-firmware                # Broadcom WiFi (laptopy Apple, niektóre Dell/HP)
+mt7xxx-firmware                  # MediaTek WiFi (mt7921, mt7922 — popularne w laptopach)
+realtek-firmware                 # Realtek WiFi (rtl8xxx, rtw88, rtw89)
+nxpwireless-firmware             # NXP/Marvell WiFi
+tiwilink-firmware                # Texas Instruments WiFi/BT
+
+# Firmware dla audio
+cirrus-audio-firmware            # Cirrus Logic audio (MacBook, niektóre laptopy)
+intel-audio-firmware             # Intel SST/DMIC audio firmware
+
+# Microcode CPU
+amd-ucode-firmware               # AMD CPU microcode (bezpieczeństwo + poprawki)
+microcode_ctl                    # Intel CPU microcode (automatyczna aktualizacja)
+
+# fwupd — aktualizacja firmware urządzeń przez LVFS (Linux Vendor Firmware Service)
+# Obsługuje: ThinkPad, Dell, HP, ASUS, Lenovo, Huawei, Logitech, WD, itp.
+fwupd                            # Daemon aktualizacji firmware
+fwupd-plugin-flashrom            # Plugin dla chipów flash (BIOS/UEFI)
+
+# Narzędzia diagnostyczne firmware
+dmidecode                        # Informacje DMI/SMBIOS (model płyty, BIOS, RAM)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -48,7 +59,6 @@ dolphin-plugins
 ark
 spectacle
 gwenview
-filelight
 kcalc
 konsole
 
@@ -83,9 +93,12 @@ wine
 wine-mono
 winetricks
 lutris
+heroic-games-launcher-bin
+
 gamemode
 mangohud
 goverlay
+
 vulkan-loader
 vulkan-tools
 mesa-vulkan-drivers
@@ -93,25 +106,27 @@ mesa-dri-drivers
 mesa-libGL
 mesa-libEGL
 mesa-va-drivers
-SDL2
-jstest-gtk
+
 discord
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 4. PROGRAMOWANIE
+# ════════════════════════════════════════════════════════════════════════════
 
 git
 gh
 
+golang
 rust
 cargo
 ruby
 ruby-devel
-
 podman
-podman-compose
-buildah
 distrobox
-
 curl
 wget
+bash-completion
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -197,9 +212,6 @@ langpacks-pl
 glibc-langpack-pl
 glibc-langpack-en
 
-fwupd
-fwupd-plugin-flashrom
-
 flatpak
 plasma-discover-flatpak
 
@@ -207,3 +219,10 @@ plocate
 bash
 sudo
 polkit
+udisks2
+ntfs-3g
+exfatprogs
+dosfstools
+smartmontools
+lm_sensors
+thermald
