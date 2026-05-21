@@ -1,27 +1,9 @@
-# repos/nobara.repo
-# Nobara Project — kernel i poprawki dla gamingu
-# https://nobaraproject.org
-#
-# Nobara kernel zawiera:
-#   - Scheduler BORE/LAVD (lepszy czas odpowiedzi)
-#   - Steam Deck patches
-#   - HDR support
-#   - fsync / futex2
-#   - NTSYNC (szybszy Wine/Proton)
-#   - Poprawki dla ROG, Lenovo Legion itp.
-
-[nobara]
-name=Nobara Linux $releasever - $basearch
-baseurl=https://nobaraproject.org/repos/$releasever/$basearch/
+[copr:copr.fedorainfracloud.org:atim:heroic-games-launcher]
+name=Heroic Games Launcher (Fedora $releasever)
+baseurl=https://download.copr.fedorainfracloud.org/results/atim/heroic-games-launcher/fedora-$releasever-x86_64/
+type=rpm-md
 enabled=1
 gpgcheck=1
-gpgkey=https://nobaraproject.org/nobarakey.gpg
-priority=85
-
-[nobara-updates]
-name=Nobara Linux $releasever - $basearch - Updates
-baseurl=https://nobaraproject.org/repos/updates/$releasever/$basearch/
-enabled=1
-gpgcheck=1
-gpgkey=https://nobaraproject.org/nobarakey.gpg
-priority=85
+gpgkey=https://download.copr.fedorainfracloud.org/results/atim/heroic-games-launcher/pubkey.gpg
+repo_gpgcheck=0
+priority=80
