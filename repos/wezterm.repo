@@ -1,0 +1,9 @@
+[copr:copr.fedorainfracloud.org:wezfurlong:wezterm-nightly]
+name=WezTerm Nightly (Fedora $releasever)
+baseurl=https://download.copr.fedorainfracloud.org/results/wezfurlong/wezterm-nightly/fedora-$releasever-x86_64/
+type=rpm-md
+enabled=1
+gpgcheck=1
+gpgkey=https://download.copr.fedorainfracloud.org/results/wezfurlong/wezterm-nightly/pubkey.gpg
+repo_gpgcheck=0
+priority=80
