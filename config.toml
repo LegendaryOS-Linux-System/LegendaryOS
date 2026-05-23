@@ -1,7 +1,7 @@
 [project]
 name         = "LegendaryOS"
 version      = "0.0.1"
-description  = "Fedora-based OS for developers and gamers"
+description  = "Fedora-based immuntable OS"
 author       = "LegendaryOS-Linux-System"
 license      = "GPL-3.0"
 base_distro  = "fedora"
@@ -27,53 +27,10 @@ auto_login_user = ""
 
 [boot]
 bootloader  = "grub2"
-# mitigations=off → +5-15% FPS w grach (usuń jeśli zależy Ci na security)
-# nvidia-drm.modeset=1 i fbdev=1 są dodawane automatycznie gdy [nvidia] enabled=true
 kernel_args = "quiet splash mitigations=off"
 splash      = true
 timeout     = 5
 
-# ── NVIDIA proprietary drivers ────────────────────────────────────────────────
-# Sterowniki są instalowane przez Anaconda kickstart w sekcji %post.
-# NIE są częścią kontenera bootc — instalują się podczas instalacji systemu.
-#
-# Obsługiwane karty: WSZYSTKIE karty NVIDIA od Kepler (GTX 600) wzwyż:
-#   Maxwell  : GTX 750, GTX 900
-#   Pascal   : GTX 1000 (GTX 1060, 1070, 1080...)
-#   Turing   : RTX 2000 (RTX 2060, 2070, 2080...)
-#   Ampere   : RTX 3000 (RTX 3060, 3070, 3080, 3090...)
-#   Ada      : RTX 4000 (RTX 4060, 4070, 4080, 4090...)
-#   Blackwell: RTX 5000 (RTX 5070, 5080, 5090...)
-[nvidia]
-# Czy instalować proprietary sterowniki NVIDIA
-enabled = true
-
-# Otwarto-źródłowy moduł kernela (nvidia-open)
-# true  → dla kart Turing+ (RTX 2xxx i nowsze) — lepszy, wspierany przez NVIDIA
-# false → dla wszystkich kart (Kepler+), bezpieczniejszy domyślny wybór
-open_driver = false
-
-# Zablokuj nouveau (open-source driver) — WYMAGANE przy proprietary
-blacklist_nouveau = true
-
-# Kernel Mode Setting — WYMAGANE dla Wayland + NVIDIA
-# Dodaje nvidia-drm.modeset=1 nvidia-drm.fbdev=1 do kernel_args
-enable_kms = true
-
-# nvidia-settings — graficzne narzędzie konfiguracji NVIDIA
-install_nvidia_settings = true
-
-# nvidia-vaapi-driver — hardware video decode (Firefox, MPV, Chromium)
-install_vaapi = true
-
-# Vulkan ICD dla NVIDIA
-install_vulkan = true
-
-# CUDA toolkit — potrzebne do ML/AI/compute (duży pakiet, ~500MB)
-# Ustaw true jeśli planujesz używać PyTorch, TensorFlow, CUDA aplikacji
-install_cuda = false
-
-# ── Anaconda Installer ────────────────────────────────────────────────────────
 [anaconda]
 enabled            = true
 kickstart_embed    = true
@@ -96,6 +53,23 @@ iso_label    = "LEGENDARYOS_1_0"
 iso_filename = "LegendaryOS-1.0.0-fedora44.x86_64.iso"
 jobs         = 4
 clean_build  = false
+
+# System filesystem type — używany przez bootc-image-builder przy budowaniu ISO
+# Opcje: ext4 | xfs | btrfs
+#   ext4  — domyślny, najbardziej kompatybilny, sprawdzony (ZALECANY)
+#   xfs   — domyślny w Fedorze, dobry dla dużych plików
+#   btrfs — nowoczesny, snapshoty, kompresja (bardziej ryzykowny)
+filesystem   = "ext4"
+
+[nvidia]
+enabled                = true
+open_driver            = false
+blacklist_nouveau      = true
+enable_kms             = true
+install_nvidia_settings = true
+install_vaapi          = true
+install_vulkan         = true
+install_cuda           = false
 
 [container]
 enabled    = true
