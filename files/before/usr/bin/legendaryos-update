@@ -1,29 +1,30 @@
 #!/usr/bin/env ruby
+# Lokalizacja: /usr/bin/legendaryos-update
+# frozen_string_literal: true
 
-# ─── Inline color constants (zero zależności, działa standalone) ───────────────
+# ─── Inline color constants ────────────────────────────────────────────────────
 
 module C
-  ESC            = "\e["
-  RESET          = "\e[0m"
-  BOLD           = "\e[1m"
-  DIM            = "\e[2m"
+  RESET         = "\e[0m"
+  BOLD          = "\e[1m"
+  DIM           = "\e[2m"
 
-  DEEP_PURPLE    = "\e[38;5;57m"
-  ROYAL_PURPLE   = "\e[38;5;93m"
-  VIVID_MAGENTA  = "\e[38;5;165m"
-  PINK_MAGENTA   = "\e[38;5;201m"
-  ELECTRIC_BLUE  = "\e[38;5;63m"
-  COBALT_BLUE    = "\e[38;5;27m"
-  SKY_CYAN       = "\e[38;5;51m"
-  LAVENDER       = "\e[38;5;141m"
-  INDIGO         = "\e[38;5;99m"
-  PERIWINKLE     = "\e[38;5;105m"
-  DARK_VIOLET    = "\e[38;5;54m"
-  BRIGHT_WHITE   = "\e[97m"
-  BRIGHT_YELLOW  = "\e[93m"
-  BRIGHT_RED     = "\e[91m"
-  BRIGHT_CYAN    = "\e[96m"
-  SUBTLE         = "\e[90m"
+  DEEP_PURPLE   = "\e[38;5;57m"
+  ROYAL_PURPLE  = "\e[38;5;93m"
+  VIVID_MAGENTA = "\e[38;5;165m"
+  PINK_MAGENTA  = "\e[38;5;201m"
+  ELECTRIC_BLUE = "\e[38;5;63m"
+  COBALT_BLUE   = "\e[38;5;27m"
+  SKY_CYAN      = "\e[38;5;51m"
+  LAVENDER      = "\e[38;5;141m"
+  INDIGO        = "\e[38;5;99m"
+  PERIWINKLE    = "\e[38;5;105m"
+  DARK_VIOLET   = "\e[38;5;54m"
+  BRIGHT_WHITE  = "\e[97m"
+  BRIGHT_YELLOW = "\e[93m"
+  BRIGHT_RED    = "\e[91m"
+  BRIGHT_CYAN   = "\e[96m"
+  SUBTLE        = "\e[90m"
 
   def self.paint(text, *codes) = "#{codes.join}#{text}#{RESET}"
   def self.bold(text, color = BRIGHT_WHITE) = "#{BOLD}#{color}#{text}#{RESET}"
@@ -32,7 +33,7 @@ end
 # ─── UI helpers ───────────────────────────────────────────────────────────────
 
 def banner_line
-  puts C.paint("  " + "━" * 70, C::DARK_VIOLET)
+  puts C.paint("  " + "━" * 72, C::DARK_VIOLET)
 end
 
 def section_header(title, icon: "◈", color: C::ROYAL_PURPLE)
@@ -70,34 +71,14 @@ def info(msg)
   puts "  #{C::INDIGO}  ·#{C::RESET}  #{C::SUBTLE}#{msg}#{C::RESET}"
 end
 
-def progress_bar(label, width: 42)
-  frames = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏]
-  i = 0
-  thread = Thread.new do
-    loop do
-      frame = frames[i % frames.length]
-      print "\r  #{C::VIVID_MAGENTA}#{C::BOLD}  #{frame}#{C::RESET}  #{C::ELECTRIC_BLUE}#{label}#{C::RESET}   "
-      $stdout.flush
-      sleep 0.1
-      i += 1
-    end
-  end
-  yield
-ensure
-  thread.kill
-  print "\r" + " " * (width + 20) + "\r"
-  $stdout.flush
-end
-
-def run_cmd(cmd, label:, critical: true)
+def run_cmd(cmd, label:, critical: true, env: {})
   step(label)
-  output_lines = []
   success = false
 
-  IO.popen("#{cmd} 2>&1", "r") do |io|
+  popen_env = ENV.to_h.merge(env)
+  IO.popen(popen_env, "#{cmd} 2>&1", "r") do |io|
     io.each_line do |line|
-      output_lines << line.chomp
-      print "  #{C::SUBTLE}  │ #{line.chomp.slice(0, 72)}#{C::RESET}\n"
+      print "  #{C::SUBTLE}  │ #{line.chomp.slice(0, 74)}#{C::RESET}\n"
       $stdout.flush
     end
     io.close
@@ -107,8 +88,7 @@ def run_cmd(cmd, label:, critical: true)
   if success
     ok("Ukończono: #{label}")
   elsif critical
-    fail_msg("Błąd podczas: #{label}")
-    puts C.paint("  Kod wyjścia: #{$?.exitstatus}", C::BRIGHT_RED)
+    fail_msg("Błąd podczas: #{label} (kod: #{$?.exitstatus})")
   else
     warn_msg("Pominięto / niepowodzenie (niekrytyczne): #{label}")
   end
@@ -119,38 +99,129 @@ rescue Errno::ENOENT => e
   false
 end
 
-# ─── Update stages ────────────────────────────────────────────────────────────
+# ─── System detection ─────────────────────────────────────────────────────────
 
-def update_bootc(results)
-  section_header("System Image (bootc)", icon: "⬡", color: C::VIVID_MAGENTA)
-
-  unless File.exist?("/usr/bin/bootc")
-    warn_msg("bootc nie jest zainstalowany — pomijam aktualizację obrazu")
-    results[:bootc] = :skipped
-    section_end
-    return
+module Detect
+  def self.binary?(name)
+    system("which #{name} > /dev/null 2>&1")
   end
 
+  # Zwraca :bootc, :rpm_ostree lub nil
+  def self.package_manager
+    if File.exist?("/usr/bin/bootc")
+      :bootc
+    elsif binary?("rpm-ostree")
+      :rpm_ostree
+    else
+      nil
+    end
+  end
+
+  def self.bootc?  = package_manager == :bootc
+  def self.rpm_ostree? = package_manager == :rpm_ostree
+
+  def self.flatpak?    = binary?("flatpak")
+  def self.fwupdmgr?   = binary?("fwupdmgr")
+  def self.distrobox?  = binary?("distrobox")
+
+  def self.distrobox_containers
+    return [] unless distrobox?
+    raw = `distrobox list --no-color 2>/dev/null`
+    lines = raw.lines.drop(1) # skip header
+    lines.map { |l| l.split("|").map(&:strip) }
+         .select { |cols| cols.length >= 3 }
+         .map    { |cols| { id: cols[0], name: cols[1], status: cols[2] } }
+  rescue StandardError
+    []
+  end
+end
+
+# ─── Update stages ────────────────────────────────────────────────────────────
+
+# ── 1. System Image (bootc lub rpm-ostree) ─────────────────────────────────
+
+def update_system_image(results)
+  pm = Detect.package_manager
+
+  case pm
+  when :bootc
+    update_bootc(results)
+  when :rpm_ostree
+    update_rpm_ostree(results)
+  else
+    section_header("System Image", icon: "⬡", color: C::VIVID_MAGENTA)
+    warn_msg("Nie znaleziono ani bootc ani rpm-ostree — pomijam aktualizację obrazu")
+    results[:system] = :skipped
+    section_end
+  end
+end
+
+def update_bootc(results)
+  section_header("System Image — bootc", icon: "⬡", color: C::VIVID_MAGENTA)
+  info("Menedżer obrazów: #{C::BOLD}#{C::VIVID_MAGENTA}bootc#{C::RESET}")
   info("Pobieram nowy obraz kontenera OCI…")
   info("Zmiany zostaną zastosowane po restarcie systemu.")
   puts
 
-  ok_flag = run_cmd("/usr/bin/bootc upgrade", label: "bootc upgrade — pobieranie i staging obrazu", critical: true)
+  ok_flag = run_cmd("/usr/bin/bootc upgrade",
+                    label: "bootc upgrade — pobieranie i staging obrazu",
+                    critical: true)
 
   if ok_flag
     ok("Obraz systemu zaktualizowany — restart wymagany do zastosowania zmian.")
-    results[:bootc] = :ok
+    results[:system] = :ok
+    results[:system_mode] = :bootc
   else
-    results[:bootc] = :failed
+    results[:system] = :failed
+    results[:system_mode] = :bootc
   end
 
   section_end
 end
 
+def update_rpm_ostree(results)
+  section_header("System Image — rpm-ostree", icon: "⬡", color: C::VIVID_MAGENTA)
+  info("Menedżer obrazów: #{C::BOLD}#{C::PINK_MAGENTA}rpm-ostree#{C::RESET}")
+  info("Sprawdzam dostępne aktualizacje…")
+  puts
+
+  # Najpierw odśwież metadane
+  run_cmd("rpm-ostree refresh-md",
+          label: "rpm-ostree refresh-md — odświeżanie metadanych",
+          critical: false)
+  puts
+
+  # Sprawdź czy są aktualizacje
+  check_out = `rpm-ostree upgrade --check 2>&1`
+  if check_out.include?("No upgrade available") || check_out.include?("already up to date")
+    ok("System jest aktualny — brak dostępnych aktualizacji rpm-ostree.")
+    results[:system] = :ok
+    results[:system_mode] = :rpm_ostree
+    section_end
+    return
+  end
+
+  ok_flag = run_cmd("rpm-ostree upgrade",
+                    label: "rpm-ostree upgrade — pobieranie aktualizacji",
+                    critical: true)
+
+  if ok_flag
+    ok("Aktualizacja rpm-ostree zakończona — restart wymagany.")
+    results[:system] = :ok
+  else
+    results[:system] = :failed
+  end
+  results[:system_mode] = :rpm_ostree
+
+  section_end
+end
+
+# ── 2. Flatpak ─────────────────────────────────────────────────────────────
+
 def update_flatpak(results)
   section_header("Flatpak Applications", icon: "⬡", color: C::ELECTRIC_BLUE)
 
-  unless system("which flatpak > /dev/null 2>&1")
+  unless Detect.flatpak?
     warn_msg("flatpak nie jest zainstalowany — pomijam")
     results[:flatpak] = :skipped
     section_end
@@ -160,7 +231,6 @@ def update_flatpak(results)
   info("Aktualizuję wszystkie zainstalowane aplikacje Flatpak…")
   puts
 
-  # Pokaż co jest zainstalowane
   installed = `flatpak list --app --columns=application,version 2>/dev/null`.strip
   unless installed.empty?
     info("Zainstalowane aplikacje:")
@@ -171,16 +241,19 @@ def update_flatpak(results)
   end
 
   ok_flag = run_cmd("flatpak update --noninteractive --assumeyes",
-                    label: "flatpak update — aktualizacja aplikacji", critical: false)
+                    label: "flatpak update — aktualizacja aplikacji",
+                    critical: false)
 
   results[:flatpak] = ok_flag ? :ok : :failed
   section_end
 end
 
+# ── 3. Firmware ────────────────────────────────────────────────────────────
+
 def update_firmware(results)
   section_header("Firmware (fwupd)", icon: "⬡", color: C::SKY_CYAN)
 
-  unless system("which fwupdmgr > /dev/null 2>&1")
+  unless Detect.fwupdmgr?
     warn_msg("fwupdmgr nie jest zainstalowany — pomijam aktualizację firmware")
     results[:firmware] = :skipped
     section_end
@@ -190,15 +263,16 @@ def update_firmware(results)
   info("Odświeżam metadane firmware z LVFS…")
   puts
 
-  run_cmd("fwupdmgr refresh --force", label: "fwupdmgr refresh — pobieranie metadanych", critical: false)
+  run_cmd("fwupdmgr refresh --force",
+          label: "fwupdmgr refresh — pobieranie metadanych",
+          critical: false)
   puts
 
   info("Sprawdzam dostępne aktualizacje firmware…")
   puts
 
-  # Sprawdź czy są dostępne aktualizacje
   check_out = `fwupdmgr get-updates 2>&1`
-  if check_out.include?("No upgrades") || check_out.include?("no upgrades") || check_out.include?("Nothing to do")
+  if check_out.match?(/No upgrades|no upgrades|Nothing to do/i)
     ok("Firmware jest aktualny — brak dostępnych aktualizacji")
     results[:firmware] = :ok
     section_end
@@ -206,7 +280,8 @@ def update_firmware(results)
   end
 
   ok_flag = run_cmd("fwupdmgr update --no-reboot-check --noninteractive",
-                    label: "fwupdmgr update — instalacja aktualizacji firmware", critical: false)
+                    label: "fwupdmgr update — instalacja aktualizacji firmware",
+                    critical: false)
 
   if ok_flag
     ok("Firmware zaktualizowany pomyślnie.")
@@ -218,9 +293,89 @@ def update_firmware(results)
   section_end
 end
 
+# ── 4. Distrobox ───────────────────────────────────────────────────────────
+
+def update_distrobox(results)
+  section_header("Distrobox Containers", icon: "⬡", color: C::LAVENDER)
+
+  unless Detect.distrobox?
+    warn_msg("distrobox nie jest zainstalowany — pomijam")
+    results[:distrobox] = :skipped
+    section_end
+    return
+  end
+
+  containers = Detect.distrobox_containers
+
+  if containers.empty?
+    info("Brak skonfigurowanych kontenerów Distrobox.")
+    results[:distrobox] = :skipped
+    section_end
+    return
+  end
+
+  info("Znalezione kontenery Distrobox:")
+  containers.each do |c|
+    status_color = c[:status].downcase.include?("running") ? C::BRIGHT_CYAN : C::SUBTLE
+    puts "  #{C::SUBTLE}  │  #{C::BRIGHT_WHITE}#{c[:name]}#{C::RESET}  " \
+         "#{status_color}#{c[:status]}#{C::RESET}"
+  end
+  puts
+
+  failed_count = 0
+  ok_count     = 0
+
+  containers.each do |container|
+    name = container[:name]
+
+    puts "  #{C::PERIWINKLE}#{C::BOLD}  ◈  #{name}#{C::RESET}"
+    puts "  #{C::SUBTLE}     Aktualizuję pakiety wewnątrz kontenera…#{C::RESET}"
+    puts
+
+    # Wykryj menedżer pakietów w kontenerze i uruchom update
+    ok_flag = run_cmd(
+      "distrobox enter #{name} -- sh -c '" \
+        'if command -v dnf >/dev/null 2>&1; then ' \
+          "dnf upgrade -y; " \
+        'elif command -v apt-get >/dev/null 2>&1; then ' \
+          "apt-get update -qq && apt-get upgrade -y; " \
+        'elif command -v pacman >/dev/null 2>&1; then ' \
+          "pacman -Syu --noconfirm; " \
+        'elif command -v zypper >/dev/null 2>&1; then ' \
+          "zypper refresh && zypper update -y; " \
+        'else ' \
+          "echo 'Nieznany menedżer pakietów w kontenerze'; exit 1; " \
+        "fi'",
+      label:    "Distrobox [#{name}] — aktualizacja pakietów",
+      critical: false
+    )
+
+    if ok_flag
+      ok_count += 1
+    else
+      failed_count += 1
+    end
+    puts
+  end
+
+  if failed_count == 0
+    ok("Wszystkie kontenery Distrobox zaktualizowane (#{ok_count}/#{containers.length}).")
+    results[:distrobox] = :ok
+  elsif ok_count == 0
+    fail_msg("Żaden kontener Distrobox nie został zaktualizowany.")
+    results[:distrobox] = :failed
+  else
+    warn_msg("Częściowa aktualizacja: #{ok_count} OK, #{failed_count} błędów.")
+    results[:distrobox] = :failed
+  end
+
+  results[:distrobox_containers] = containers.length
+  section_end
+end
+
 # ─── Summary ──────────────────────────────────────────────────────────────────
 
-def print_summary(results, started_at)
+def print_summary(results, flags, started_at)
   elapsed = (Time.now - started_at).round(1)
 
   puts
@@ -230,20 +385,39 @@ def print_summary(results, started_at)
   puts
 
   status_icon = {
-    ok:      "#{C::BRIGHT_CYAN}#{C::BOLD}  ✔  OK     #{C::RESET}",
-    failed:  "#{C::BRIGHT_RED}#{C::BOLD}  ✘  BŁĄD   #{C::RESET}",
-    skipped: "#{C::BRIGHT_YELLOW}#{C::BOLD}  ⊘  POMINIĘTO#{C::RESET}",
+    ok:      "#{C::BRIGHT_CYAN}#{C::BOLD}  ✔  OK        #{C::RESET}",
+    failed:  "#{C::BRIGHT_RED}#{C::BOLD}  ✘  BŁĄD      #{C::RESET}",
+    skipped: "#{C::BRIGHT_YELLOW}#{C::BOLD}  ⊘  POMINIĘTO #{C::RESET}",
   }
 
-  labels = {
-    bootc:    "System Image (bootc)",
-    flatpak:  "Flatpak Applications",
-    firmware: "Firmware (fwupd)",
+  label_for = {
+    system:   -> {
+      mode = results[:system_mode]
+      base = "System Image"
+      case mode
+      when :bootc      then "#{base} (bootc)"
+      when :rpm_ostree then "#{base} (rpm-ostree)"
+      else base
+      end
+    },
+    flatpak:   -> { "Flatpak Applications" },
+    firmware:  -> { "Firmware (fwupd)" },
+    distrobox: -> {
+      n = results[:distrobox_containers]
+      n ? "Distrobox Containers (#{n})" : "Distrobox Containers"
+    },
   }
 
-  results.each do |key, status|
-    icon = status_icon[status] || status_icon[:skipped]
-    label = "#{C::BRIGHT_WHITE}#{C::BOLD}%-26s#{C::RESET}" % labels[key]
+  active_keys = []
+  active_keys << :system   if flags[:system]
+  active_keys << :flatpak  if flags[:flatpak]
+  active_keys << :firmware if flags[:firmware]
+  active_keys << :distrobox if flags[:distrobox]
+
+  active_keys.each do |key|
+    status = results[key] || :skipped
+    icon   = status_icon[status] || status_icon[:skipped]
+    label  = "#{C::BRIGHT_WHITE}#{C::BOLD}%-36s#{C::RESET}" % label_for[key].call
     puts "  #{icon} #{label}"
   end
 
@@ -251,14 +425,15 @@ def print_summary(results, started_at)
   info("Czas aktualizacji: #{elapsed}s")
   puts
 
-  any_failed = results.values.any? { |v| v == :failed }
-  bootc_ok   = results[:bootc] == :ok
+  any_failed = results.slice(*active_keys).values.any? { |v| v == :failed }
+  system_ok  = results[:system] == :ok
 
   if !any_failed
     puts C.paint("  ⚡  Aktualizacja zakończona pomyślnie!", C::VIVID_MAGENTA + C::BOLD)
-    if bootc_ok
+    if system_ok
       puts
-      puts "  #{C::ROYAL_PURPLE}#{C::BOLD}  ↺  Uruchom ponownie system, aby zastosować nowy obraz.#{C::RESET}"
+      mode_note = results[:system_mode] == :rpm_ostree ? "rpm-ostree" : "bootc"
+      puts "  #{C::ROYAL_PURPLE}#{C::BOLD}  ↺  Uruchom ponownie system, aby zastosować nowy obraz (#{mode_note}).#{C::RESET}"
       puts "  #{C::SUBTLE}     sudo systemctl reboot#{C::RESET}"
     end
   else
@@ -273,14 +448,23 @@ end
 # ─── Header ───────────────────────────────────────────────────────────────────
 
 def print_header
+  pm = Detect.package_manager
+  pm_label = case pm
+             when :bootc      then "#{C::VIVID_MAGENTA}bootc#{C::RESET}"
+             when :rpm_ostree then "#{C::PINK_MAGENTA}rpm-ostree#{C::RESET}"
+             else "#{C::BRIGHT_YELLOW}(brak)#{C::RESET}"
+             end
+
   puts
   banner_line
   puts
   puts C.paint("  ⚡  LEGENDARYOS SYSTEM UPDATER", C::VIVID_MAGENTA + C::BOLD)
-  puts C.paint("     Aktualizacja: system · aplikacje · firmware", C::LAVENDER)
+  puts C.paint("     Aktualizacja: system · aplikacje · firmware · distrobox", C::LAVENDER)
   puts
-  puts "  #{C::SUBTLE}Czas:     #{Time.now.strftime("%Y-%m-%d %H:%M:%S")}#{C::RESET}"
-  puts "  #{C::SUBTLE}Hostname: #{`hostname -f 2>/dev/null || hostname`.strip}#{C::RESET}"
+  puts "  #{C::SUBTLE}Czas:       #{Time.now.strftime("%Y-%m-%d %H:%M:%S")}#{C::RESET}"
+  puts "  #{C::SUBTLE}Hostname:   #{`hostname -f 2>/dev/null || hostname`.strip}#{C::RESET}"
+  puts "  #{C::SUBTLE}Pkg mgr:    #{pm_label}"
+  puts "  #{C::SUBTLE}Distrobox:  #{Detect.distrobox? ? "#{C::BRIGHT_CYAN}dostępny#{C::RESET}" : "#{C::SUBTLE}niedostępny#{C::RESET}"}#{C::RESET}"
   puts
   banner_line
   puts
@@ -289,29 +473,48 @@ end
 # ─── Argument parsing ─────────────────────────────────────────────────────────
 
 def parse_args(argv)
-  flags = { bootc: false, flatpak: false, firmware: false }
-  all = argv.none? { |a| %w[--bootc --flatpak --firmware].include?(a) }
+  flags = { system: false, flatpak: false, firmware: false, distrobox: false }
+
+  # Obsługujemy też stare nazwy --bootc dla kompatybilności
+  named = argv.any? { |a| %w[--system --bootc --flatpak --firmware --distrobox].include?(a) }
 
   argv.each do |arg|
     case arg
-    when "--bootc"    then flags[:bootc]    = true
-    when "--flatpak"  then flags[:flatpak]  = true
-    when "--firmware" then flags[:firmware] = true
+    when "--system", "--bootc" then flags[:system]    = true
+    when "--flatpak"           then flags[:flatpak]   = true
+    when "--firmware"          then flags[:firmware]  = true
+    when "--distrobox"         then flags[:distrobox] = true
     when "--help", "-h"
-      puts
-      puts "  #{C::BOLD}#{C::VIVID_MAGENTA}legendaryos-update#{C::RESET} — Aktualizacja systemu LegendaryOS"
-      puts
-      puts "  #{C::LABEL}Użycie:#{C::RESET}"
-      puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update#{C::RESET}           #{C::SUBTLE}# aktualizuje wszystko#{C::RESET}"
-      puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update --bootc#{C::RESET}    #{C::SUBTLE}# tylko obraz systemu#{C::RESET}"
-      puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update --flatpak#{C::RESET}  #{C::SUBTLE}# tylko aplikacje Flatpak#{C::RESET}"
-      puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update --firmware#{C::RESET} #{C::SUBTLE}# tylko firmware#{C::RESET}"
-      puts
+      print_help
       exit 0
     end
   end
 
-  all ? { bootc: true, flatpak: true, firmware: true } : flags
+  # Brak flag = aktualizuj wszystko
+  named ? flags : { system: true, flatpak: true, firmware: true, distrobox: true }
+end
+
+def print_help
+  puts
+  puts "  #{C::BOLD}#{C::VIVID_MAGENTA}legendaryos-update#{C::RESET} — Aktualizacja systemu LegendaryOS"
+  puts
+  puts "  #{C::INDIGO}Użycie:#{C::RESET}"
+  puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update#{C::RESET}              #{C::SUBTLE}# aktualizuje wszystko#{C::RESET}"
+  puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update --system#{C::RESET}     #{C::SUBTLE}# tylko obraz systemu (bootc lub rpm-ostree)#{C::RESET}"
+  puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update --bootc#{C::RESET}      #{C::SUBTLE}# alias dla --system#{C::RESET}"
+  puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update --flatpak#{C::RESET}    #{C::SUBTLE}# tylko aplikacje Flatpak#{C::RESET}"
+  puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update --firmware#{C::RESET}   #{C::SUBTLE}# tylko firmware#{C::RESET}"
+  puts "    #{C::ELECTRIC_BLUE}sudo legendaryos-update --distrobox#{C::RESET}  #{C::SUBTLE}# tylko kontenery Distrobox#{C::RESET}"
+  puts
+  puts "  #{C::INDIGO}Automatyczna detekcja:#{C::RESET}"
+  pm = Detect.package_manager
+  pm_s = case pm
+         when :bootc      then "#{C::VIVID_MAGENTA}bootc#{C::RESET} (/usr/bin/bootc)"
+         when :rpm_ostree then "#{C::PINK_MAGENTA}rpm-ostree#{C::RESET}"
+         else "#{C::BRIGHT_YELLOW}brak#{C::RESET}"
+         end
+  puts "    Aktywny menedżer obrazów: #{pm_s}"
+  puts
 end
 
 # ─── Root check ───────────────────────────────────────────────────────────────
@@ -330,10 +533,11 @@ results    = {}
 
 print_header
 
-update_bootc(results)    if flags[:bootc]
-update_flatpak(results)  if flags[:flatpak]
-update_firmware(results) if flags[:firmware]
+update_system_image(results) if flags[:system]
+update_flatpak(results)      if flags[:flatpak]
+update_firmware(results)     if flags[:firmware]
+update_distrobox(results)    if flags[:distrobox]
 
-print_summary(results, started_at)
+print_summary(results, flags, started_at)
 
 exit(results.values.any? { |v| v == :failed } ? 1 : 0)
