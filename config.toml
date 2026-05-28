@@ -1,7 +1,7 @@
 [project]
 name         = "LegendaryOS"
 version      = "0.0.1"
-description  = "Fedora-based immuntable OS"
+description  = "Fedora-based OS"
 author       = "LegendaryOS-Linux-System"
 license      = "GPL-3.0"
 base_distro  = "fedora"
@@ -35,7 +35,7 @@ timeout     = 5
 enabled            = true
 kickstart_embed    = true
 product_name       = "LegendaryOS"
-product_version    = "1.0.0"
+product_version    = "0.0.1"
 webui              = true
 hide_shell         = false
 default_lang       = "pl_PL.UTF-8"
@@ -50,15 +50,11 @@ output_dir   = "build/output"
 cache_dir    = "build/cache"
 compression  = "zstd"
 iso_label    = "LEGENDARYOS_1_0"
-iso_filename = "LegendaryOS-1.0.0-fedora44.x86_64.iso"
+iso_filename = "LegendaryOS-0.0.1-fedora44.x86_64.iso"
 jobs         = 4
 clean_build  = false
-
-# System filesystem type — używany przez bootc-image-builder przy budowaniu ISO
-# Opcje: ext4 | xfs | btrfs
-#   ext4  — domyślny, najbardziej kompatybilny, sprawdzony (ZALECANY)
-#   xfs   — domyślny w Fedorze, dobry dla dużych plików
-#   btrfs — nowoczesny, snapshoty, kompresja (bardziej ryzykowny)
+# System filesystem type używany przez bootc-image-builder
+# Opcje: ext4 | xfs | btrfs   (domyślnie: ext4)
 filesystem   = "ext4"
 
 [nvidia]
@@ -71,11 +67,37 @@ install_vaapi          = true
 install_vulkan         = true
 install_cuda           = false
 
+# ── Container / bootc ─────────────────────────────────────────────────────────
+# registry tryby:
+#   "custom" → ghcr.io/<user.toml github.name>/<image>
+#   "repo"   → ghcr.io/<container.repo>  (konkretne repozytorium GitHub)
+#   inne     → użyte dosłownie
 [container]
 enabled    = true
-registry   = "custom"
+registry   = "repo"
+# Konkretne repozytorium GitHub (org/repo) — używane gdy registry = "repo"
+# Obraz trafi do: ghcr.io/legendaryos-linux-system/legendaryos:1.0.0
+repo       = "LegendaryOS-Linux-System/legendaryos"
 image      = "legendaryos"
-tag        = "0.0.1"
+tag        = "1.0.0"
 push       = false
 sign_image = false
 bootc_mode = true
+
+# ── Branches — warianty OS z różnymi środowiskami graficznymi ─────────────────
+# Branch = ten sam obraz bazowy ale z innym DE
+# Budowane przez: legendaryos-builder build cloud --branch <name>
+# Każdy branch → osobny tag OCI: ghcr.io/.../legendaryos:1.0.0-gnome itp.
+#
+# UWAGA: branches są zdefiniowane ale nie wdrożone w tym projekcie
+# Odkomentuj i dostosuj gdy będziesz gotowy na multi-DE buildy
+
+# [[branch]]
+# name            = "cosmic"
+# display_name    = "LegendaryOS COSMIC Edition"
+# desktop         = "cosmic"
+# description     = "LegendaryOS z COSMIC (System76) — nowoczesny Rust DE"
+# tag             = "1.0.0-cosmic"
+# enabled         = false
+# extra_packages  = ["cosmic-session", "cosmic-settings", "cosmic-files", "cosmic-terminal"]
+# remove_packages = ["@kde-desktop-environment", "plasma-discover", "sddm"]
