@@ -1,0 +1,5 @@
+[General]
+LogoPath=/usr/share/LegendaryOS/icons/LegendaryOS.png
+Name=LegendaryOS
+Website=https://legendaryos-linux-system.github.io/website/
+Variant=KDE Environment
