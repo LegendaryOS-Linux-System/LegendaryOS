@@ -7,10 +7,6 @@ base_dir="/usr/share/LegendaryOS/tools"
 builder_url="https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/v0.5/legendaryos-builder"
 builder_target="/usr/bin/legendaryos-builder"
 
-# LegendaryOS Store v0.3
-store_url="https://github.com/LegendaryOS-Linux-System/LegendaryOS-Store/releases/download/v0.3/legendaryos-store"
-store_target="/usr/bin/legendaryos-store"
-
 # Definicja repozytoriów w tablicy asocjacyjnej
 declare -A repos
 repos=(
@@ -56,18 +52,6 @@ if curl -L -o "$builder_target" "$builder_url"; then
   echo "Sukces: LegendaryOS Builder został zaktualizowany do wersji v0.3."
 else
   echo "Błąd: Nie udało się pobrać pliku binarnego Builder."
-fi
-
-# 3. Pobieranie nowej rzeczy: LegendaryOS Store
-echo -e "\n--- Instalacja LegendaryOS Store ---"
-echo "Pobieranie: ${store_url} -> ${store_target}"
-
-if curl -L -o "$store_target" "$store_url"; then
-  echo "Nadawanie uprawnień do wykonywania (chmod a+x)..."
-  chmod a+x "$store_target"
-  echo "Sukces: LegendaryOS Store został zainstalowany."
-else
-  echo "Błąd: Nie udało się pobrać pliku binarnego Store."
 fi
 
 echo -e "\nProces zakończony."
