@@ -1,18 +1,23 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+# Lokalizacja: /usr/bin/legendary-motd
 
 require 'json'
 require 'fileutils'
 require 'optparse'
 
 # Ścieżki systemowe
-BASE_DIR = "/usr/share/LegendaryOS/motd"
-THEME_DIR = File.join(BASE_DIR, "theme")
+BASE_DIR      = "/usr/share/LegendaryOS/motd"
+THEME_DIR     = File.join(BASE_DIR, "theme")
 TEMPLATE_PATH = File.join(BASE_DIR, "template/template.md")
-CONFIG_FILE = File.expand_path("~/.config/legendaryos/motd.pref")
+CONFIG_FILE   = File.expand_path("~/.config/legendaryos/motd.pref")
+MOTD_OFF_FILE = File.join(Dir.home, ".config", "LegendaryOS", "motd", ".off")
 
 # Wyjście, jeśli Midnight Commander działa w tle
 exit 0 if ENV['MC_SID']
+
+# Wyjście, jeśli MOTD jest wyłączone przez użytkownika
+exit 0 if File.exist?(MOTD_OFF_FILE)
 
 # 1. Zarządzanie konfiguracją i flagami
 options = { theme: "default" }
@@ -40,6 +45,7 @@ theme_file = File.join(THEME_DIR, "default.json") unless File.exist?(theme_file)
 
 tip_files = Dir.glob(File.join(BASE_DIR, "*.md"))
 exit 0 if tip_files.empty?
+
 selected_tip = tip_files.sample
 
 # 3. Pobieranie wariantu dystrybucji
@@ -52,7 +58,7 @@ end
 # 4. Przetwarzanie szablonu
 if File.exist?(TEMPLATE_PATH)
   template_content = File.read(TEMPLATE_PATH)
-  tip_content = File.read(selected_tip)
+  tip_content      = File.read(selected_tip)
 
   # Podmiana markerów
   output = template_content.gsub("%VARIANT%", distro_variant)
