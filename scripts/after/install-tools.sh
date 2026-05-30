@@ -3,8 +3,8 @@
 # Konfiguracja
 base_dir="/usr/share/LegendaryOS/tools"
 
-# LegendaryOS Builder v0.3
-builder_url="https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/v0.3/legendaryos-builder"
+# LegendaryOS Builder v0.5
+builder_url="https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/v0.5/legendaryos-builder"
 builder_target="/usr/bin/legendaryos-builder"
 
 # LegendaryOS Store v0.3
