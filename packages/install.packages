@@ -132,6 +132,7 @@ ruby-devel
 
 podman
 distrobox
+toolbox
 
 vim-enhanced
 neovim
