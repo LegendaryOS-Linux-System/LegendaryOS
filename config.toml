@@ -1,6 +1,6 @@
 [project]
 name         = "LegendaryOS"
-version      = "0.0.1"
+version      = "stable-kde"
 description  = "Fedora-based OS"
 author       = "LegendaryOS-Linux-System"
 license      = "GPL-3.0"
@@ -79,7 +79,7 @@ registry   = "repo"
 # Obraz trafi do: ghcr.io/legendaryos-linux-system/legendaryos:1.0.0
 repo       = "LegendaryOS-Linux-System/legendaryos"
 image      = "legendaryos"
-tag        = "0.0.1"
+tag        = "stable-kde"
 push       = false
 sign_image = false
 bootc_mode = true
