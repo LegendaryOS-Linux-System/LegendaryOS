@@ -1,16 +1,120 @@
-# ![LegendaryOS Linux System based on Fedora immuntable.](https://raw.githubusercontent.com/LegendaryOS-Linux-System/website/main/images/LegendaryOS.png)
-# LegendaryOS
-What is LegendaryOS? It's a Fedora-based Linux distribution designed primarily for users with NVIDIA graphics cards.
+= LegendaryOS
+:toc: left
+:toc-title: Contents / Spis treści
+:icons: font
+:source-highlighter: highlight.js
+:imagesdir: images
 
-## Does LegendaryOS use a special kernel for gaming?
-It does not use the default Fedora kernel, in the future there are plans for LegendaryOS to have its own special kernel.
+image::https://raw.githubusercontent.com/LegendaryOS-Linux-System/website/main/images/LegendaryOS.png[LegendaryOS Logo, align="center"]
 
-## What's so special about LegendaryOS?
-LegendaryOS offers a Plasma, Gnome, Cosmic, or Blue graphical environment (depending on the image). I also offer special CLI tools such as: lpm - a frontend for distrobox/toolbox, rpm-ostree, or bootc, legendary/legendaryos/legend - this is primarily a LegendaryOS CLI tool that offers many commands, such as comma for updating the entire system or disabling motd in the terminal. Additionally, LegendaryOS has a GUI application called the LegendaryOS App. It allows you to connect the Android ecosystem (your phone) with HackerOS (your VM or container), and of course, LegendaryOS.
+'''
 
-## What graphical environments does LegendaryOS have?
-LegendaryOS has 4 separate images with different graphical environments 1. KDE 2. Gnome 3. Cosmic 4. Blue
+// ============================================================
+//  WERSJA POLSKA
+// ============================================================
 
-## How often are new LegendaryOS images released?
-New LegendaryOS images are released every six months, more often if there are any bugs or problems.
+= 🇵🇱 Dokumentacja — język polski
 
+== Czym jest LegendaryOS?
+
+LegendaryOS to dystrybucja Linuxa oparta na Fedorze, zaprojektowana przede wszystkim z myślą o użytkownikach posiadających karty graficzne NVIDIA.
+
+== Czy LegendaryOS używa specjalnego jądra dla graczy?
+
+LegendaryOS nie korzysta z domyślnego jądra Fedory. W przyszłości planowane jest stworzenie własnego, dedykowanego jądra systemu.
+
+== Co wyróżnia LegendaryOS?
+
+LegendaryOS oferuje środowisko graficzne Plasma, GNOME, COSMIC lub Blue (w zależności od wybranego obrazu).
+
+Dostępne są również specjalne narzędzia CLI:
+
+`lpm`:: Frontend dla distrobox/toolbox, rpm-ostree lub bootc.
+`legendary` / `legendaryos` / `legend`:: Główne narzędzie CLI systemu LegendaryOS, oferujące wiele komend — takich jak aktualizacja całego systemu czy wyłączenie motd w terminalu.
+
+Ponadto LegendaryOS posiada aplikację graficzną *LegendaryOS App*, która umożliwia:
+
+* integrację ekosystemu Android (telefon) z HackerOS (maszyna wirtualna lub kontener),
+* pełną współpracę z systemem LegendaryOS.
+
+== Dostępne środowiska graficzne
+
+LegendaryOS udostępnia 4 oddzielne obrazy z różnymi środowiskami graficznymi:
+
+[cols="^1,^3", options="header", width="60%"]
+|===
+| #
+| Środowisko graficzne
+
+| 1
+| KDE Plasma
+
+| 2
+| GNOME
+
+| 3
+| COSMIC
+
+| 4
+| Blue
+|===
+
+== Jak często wydawane są nowe obrazy LegendaryOS?
+
+Nowe obrazy LegendaryOS są wydawane co sześć miesięcy. W przypadku wykrycia błędów lub problemów aktualizacje mogą być wydawane częściej.
+
+'''
+
+// ============================================================
+//  ENGLISH VERSION
+// ============================================================
+
+= 🇬🇧 Documentation — English
+
+== What is LegendaryOS?
+
+LegendaryOS is a Linux distribution based on Fedora, designed primarily for users with NVIDIA graphics cards.
+
+== Does LegendaryOS use a special kernel for gaming?
+
+LegendaryOS does not use the default Fedora kernel. In the future, there are plans for LegendaryOS to ship its own dedicated kernel.
+
+== What makes LegendaryOS special?
+
+LegendaryOS offers a Plasma, GNOME, COSMIC, or Blue graphical environment (depending on the chosen image).
+
+It also provides special CLI tools:
+
+`lpm`:: A frontend for distrobox/toolbox, rpm-ostree, or bootc.
+`legendary` / `legendaryos` / `legend`:: The primary LegendaryOS CLI tool, offering many commands — such as updating the entire system or disabling the motd in the terminal.
+
+Additionally, LegendaryOS includes a GUI application called *LegendaryOS App*, which allows you to:
+
+* connect the Android ecosystem (your phone) with HackerOS (your VM or container),
+* seamlessly integrate everything with LegendaryOS.
+
+== Available graphical environments
+
+LegendaryOS provides 4 separate images with different graphical environments:
+
+[cols="^1,^3", options="header", width="60%"]
+|===
+| #
+| Graphical Environment
+
+| 1
+| KDE Plasma
+
+| 2
+| GNOME
+
+| 3
+| COSMIC
+
+| 4
+| Blue
+|===
+
+== How often are new LegendaryOS images released?
+
+New LegendaryOS images are released every six months. If any bugs or issues are discovered, updates may be released more frequently.
