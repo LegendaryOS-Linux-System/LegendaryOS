@@ -21,7 +21,7 @@ LegendaryOS to dystrybucja Linuxa oparta na Fedorze, zaprojektowana przede wszys
 
 == Czy LegendaryOS używa specjalnego jądra dla graczy?
 
-LegendaryOS nie korzysta z domyślnego jądra Fedory. W przyszłości planowane jest stworzenie własnego, dedykowanego jądra systemu.
+LegendaryOS korzysta z domyślnego jądra Fedory. W przyszłości planowane jest stworzenie własnego, dedykowanego jądra systemu.
 
 == Co wyróżnia LegendaryOS?
 
