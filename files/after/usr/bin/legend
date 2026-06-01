@@ -1,1 +1,13 @@
+#!/usr/bin/env ruby
 
+# Ścieżka do głównego skryptu
+TARGET_SCRIPT = "/usr/share/LegendaryOS/tools/legendary/main.rb"
+
+if File.exist?(TARGET_SCRIPT)
+  # Przekazujemy wszystkie argumenty (ARGV) i uruchamiamy główny skrypt
+  # exec zastępuje bieżący proces, więc zachowuje się identycznie jak bezpośrednie wywołanie main.rb
+  exec "ruby", TARGET_SCRIPT, *ARGV
+else
+  STDERR.puts "Błąd: Nie znaleziono skryptu docelowego w #{TARGET_SCRIPT}"
+  exit 1
+end
