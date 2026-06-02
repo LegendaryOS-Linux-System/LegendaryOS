@@ -35,7 +35,7 @@ timeout     = 5
 enabled            = true
 kickstart_embed    = true
 product_name       = "LegendaryOS"
-product_version    = "0.0.1"
+product_version    = "0.1.0"
 webui              = true
 hide_shell         = false
 default_lang       = "pl_PL.UTF-8"
@@ -50,7 +50,7 @@ output_dir   = "build/output"
 cache_dir    = "build/cache"
 compression  = "zstd"
 iso_label    = "LEGENDARYOS_1_0"
-iso_filename = "LegendaryOS-0.0.1-fedora44.x86_64.iso"
+iso_filename = "LegendaryOS-kde-fedora44.x86_64.iso"
 jobs         = 4
 clean_build  = false
 # System filesystem type używany przez bootc-image-builder
