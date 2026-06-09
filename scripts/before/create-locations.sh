@@ -1,4 +1,6 @@
 #!/bin/bash
 
-sudo mkdir /usr/share/LegendaryOS/tools/
-sudo mkdir /usr/share/LegendaryOS/icons/
+sudo sudo mkdir /usr/share/LegendaryOS/
+cd /usr/share/LegendaryOS/
+sudo mkdir tools
+sudo mkdir icons
