@@ -3,8 +3,8 @@
 # Konfiguracja
 base_dir="/usr/share/LegendaryOS/tools"
 
-# LegendaryOS Builder v0.5
-builder_url="https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/v0.5/legendaryos-builder"
+# LegendaryOS Builder v0.5.1
+builder_url="https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/v0.5.1/legendaryos-builder"
 builder_target="/usr/bin/legendaryos-builder"
 
 # Definicja repozytoriów w tablicy asocjacyjnej
@@ -49,7 +49,7 @@ echo "Pobieranie: ${builder_url} -> ${builder_target}"
 if curl -L -o "$builder_target" "$builder_url"; then
   echo "Nadawanie uprawnień do wykonywania (chmod a+x)..."
   chmod a+x "$builder_target"
-  echo "Sukces: LegendaryOS Builder został zaktualizowany do wersji v0.3."
+  echo "Sukces: LegendaryOS Builder został zaktualizowany do wersji v0.5.1."
 else
   echo "Błąd: Nie udało się pobrać pliku binarnego Builder."
 fi
