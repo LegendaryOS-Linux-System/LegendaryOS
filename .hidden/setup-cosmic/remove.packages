@@ -1,0 +1,37 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                  LegendaryOS — remove.packages                             ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+#
+# Pakiety usuwane po instalacji — odchudzamy bazową Fedorę
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Zbędne gry COSMIC / Fedora base (jeśli zostały wciągnięte jako zależności)
+# COSMIC nie instaluje gier domyślnie — sekcja zostawiona jako placeholder
+# Odkomentuj jeśli jakiś z nich trafi do obrazu:
+# gnome-mines
+# gnome-sudoku
+# gnome-mahjongg
+# aisleriot
+
+# Terminal — używamy WezTerm, usuwamy cosmic-term
+cosmic-term                      # COSMIC domyślny terminal — zastąpiony przez WezTerm
+
+# Modem Manager — niepotrzebny bez modemu GSM
+ModemManager
+
+# Akonadi — KDE PIM framework (nieobecny w COSMIC, ale może wpaść jako zależność)
+# Usuń jeśli pojawi się w obrazie:
+# akonadi-server
+# akonadi-import-wizard
+
+# Pakiety KDE które mogą wpaść przez zależności innych aplikacji
+# (np. haruna, gwenview, ark — mają opcjonalne deps na KDE libs)
+# Odkomentuj jeśli chcesz twardą blokadę:
+# kde-connect
+# plasma-discover
+
+# Zbędne GNOME-owe pakiety które może wciągnąć @cosmic-desktop-environment
+# na niektórych konfiguracjach (COSMIC korzysta z części GTK/GNOME infra)
+# gnome-tour
+# gnome-initial-setup
+# gnome-software                 # Zastąpiony przez cosmic-store
