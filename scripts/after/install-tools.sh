@@ -12,7 +12,7 @@ declare -A repos
 repos=(
   ["legendary.git"]="https://github.com/LegendaryOS-Linux-System/legendary.git"
   ["lpm.git"]="https://github.com/LegendaryOS-Linux-System/lpm.git"
-  ["lpm.git"]="https://github.com/LegendaryOS-Linux-System/LegendaryOS-Game.git"
+  ["LegendaryOS-Game.git"]="https://github.com/LegendaryOS-Linux-System/LegendaryOS-Game.git"
 )
 
 # Sprawdzenie uprawnień roota
