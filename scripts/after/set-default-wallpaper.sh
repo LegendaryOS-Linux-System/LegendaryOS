@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# set-wallpaper.sh — ustawia tapetę w KDE Plasma (Fedora)
+# set-default-wallpaper.sh — ustawia tapetę w COSMIC DE (Fedora)
 
 WALLPAPER="/usr/share/wallpapers/Wallpaper.png"
 
@@ -9,58 +9,50 @@ if [[ ! -f "$WALLPAPER" ]]; then
     exit 1
 fi
 
-# --- 2. Metoda 1: plasma-apply-wallpaperimage (Plasma 5.26+ / Plasma 6) ---
-if command -v plasma-apply-wallpaperimage &>/dev/null; then
-    plasma-apply-wallpaperimage "$WALLPAPER" && echo "Tapeta ustawiona (plasma-apply-wallpaperimage)." && exit 0
+# --- 2. Metoda 1: cosmic-bg — natywne narzędzie COSMIC do tapet ---
+# cosmic-bg przechowuje konfigurację w RON w ~/.config/cosmic/com.system76.CosmicBg/
+# Ustawiamy tapetę system-wide przez /etc/skel (nowi użytkownicy)
+# oraz przez aktywną sesję jeśli dostępna
+
+COSMIC_BG_SYSTEM_DIR="/etc/skel/.config/cosmic/com.system76.CosmicBg/v1"
+mkdir -p "$COSMIC_BG_SYSTEM_DIR"
+
+cat > "$COSMIC_BG_SYSTEM_DIR/backgrounds" << RONEOF
+(
+    backgrounds: [
+        Output(
+            output: "all",
+            source: Path("$WALLPAPER"),
+            filter_by_theme: false,
+            filter_method: Lanczos,
+            sampling_method: Alphanumeric,
+            rotation_frequency: 0,
+        ),
+    ],
+    current_image: Path("$WALLPAPER"),
+)
+RONEOF
+
+echo "Tapeta ustawiona dla nowych użytkowników (skel)."
+
+# --- 3. Metoda 2: Dla aktualnie zalogowanego użytkownika przez COSMIC D-Bus ---
+# COSMIC udostępnia D-Bus interfejs com.system76.CosmicBg
+if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+    if command -v busctl &>/dev/null; then
+        busctl --user call com.system76.CosmicBg \
+            /com/system76/CosmicBg \
+            com.system76.CosmicBg \
+            SetBackground "ss" "all" "file://$WALLPAPER" 2>/dev/null \
+        && echo "Tapeta ustawiona przez D-Bus (busctl)." \
+        || echo "Ostrzeżenie: D-Bus niedostępny, tapeta zostanie ustawiona przy następnym logowaniu."
+    fi
+else
+    echo "Brak sesji D-Bus — tapeta zostanie ustawiona przy następnym logowaniu użytkownika."
 fi
 
-# --- 3. Metoda 2: przez D-Bus / qdbus (działa w działającej sesji Plasma) ---
-if command -v qdbus &>/dev/null || command -v qdbus6 &>/dev/null; then
-    QDBUS=$(command -v qdbus6 || command -v qdbus)
+# --- 4. Ustaw domyślną konfigurację cosmic-bg przez /etc/cosmic ---
+COSMIC_ETC_BG="/etc/cosmic/com.system76.CosmicBg/v1"
+mkdir -p "$COSMIC_ETC_BG"
 
-    "$QDBUS" org.kde.plasmashell /PlasmaShell \
-        org.kde.PlasmaShell.evaluateScript "
-        var allDesktops = desktops();
-        for (var i = 0; i < allDesktops.length; i++) {
-            var d = allDesktops[i];
-            d.wallpaperPlugin = 'org.kde.image';
-            d.currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General'];
-            d.writeConfig('Image', 'file://$WALLPAPER');
-        }
-    " && echo "Tapeta ustawiona (qdbus)." && exit 0
-fi
-
-# --- 4. Metoda 3: bezpośrednia edycja plasma-org.kde.plasma.desktop-appletsrc ---
-PLASMA_CONFIG="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
-
-if [[ ! -f "$PLASMA_CONFIG" ]]; then
-    echo "Błąd: nie znaleziono $PLASMA_CONFIG ani żadnego obsługiwanego narzędzia." >&2
-    exit 1
-fi
-
-# Znajdź sekcje [Wallpaper][...][General] i ustaw Image
-python3 - <<EOF
-import configparser, sys
-
-path = "$PLASMA_CONFIG"
-cfg = configparser.RawConfigParser()
-cfg.optionxform = str          # zachowaj wielkość liter
-cfg.read(path)
-
-changed = 0
-for section in cfg.sections():
-    # Szukamy sekcji typu: Containments\[N\]\\[Wallpaper\]\\[org.kde.image\]\\[General\]
-    if "Wallpaper" in section and "General" in section and "org.kde.image" in section:
-        cfg.set(section, "Image", "file://$WALLPAPER")
-        changed += 1
-
-if changed == 0:
-    print("Ostrzeżenie: nie znaleziono sekcji tapety w configu.", file=sys.stderr)
-    sys.exit(1)
-
-with open(path, "w") as f:
-    cfg.write(f)
-
-print(f"Tapeta ustawiona w {changed} sekcji(ach) pliku konfiguracyjnego.")
-print("Uruchom ponownie plasmashell: kquitapp6 plasmashell && kstart plasmashell")
-EOF
+cp "$COSMIC_BG_SYSTEM_DIR/backgrounds" "$COSMIC_ETC_BG/backgrounds"
+echo "Tapeta ustawiona w /etc/cosmic (system-wide default)."
