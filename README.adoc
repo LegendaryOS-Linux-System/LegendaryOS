@@ -47,15 +47,9 @@ LegendaryOS udostępnia 4 oddzielne obrazy z różnymi środowiskami graficznymi
 | Środowisko graficzne
 
 | 1
-| KDE Plasma
-
-| 2
-| GNOME
-
-| 3
 | COSMIC
 
-| 4
+| 2
 | Blue
 |===
 
@@ -103,15 +97,9 @@ LegendaryOS provides 4 separate images with different graphical environments:
 | Graphical Environment
 
 | 1
-| KDE Plasma
-
-| 2
-| GNOME
-
-| 3
 | COSMIC
 
-| 4
+| 2
 | Blue
 |===
 
