@@ -1,7 +1,7 @@
 [LegendaryOS]
-version = "0.0.1"
-release_date = "2026-05-29"
+version = "2026-06"
+release_date = "2026-06-29"
 base = "Fedora"
 base_version = "44"
-edition = "KDE"
+edition = "STABLE"
 architecture = "x86_64"
