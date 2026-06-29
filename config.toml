@@ -1,6 +1,6 @@
 [project]
 name         = "LegendaryOS"
-version      = "stable-kde"
+version      = "stable"
 description  = "Fedora-based OS"
 author       = "LegendaryOS-Linux-System"
 license      = "GPL-3.0"
@@ -16,11 +16,11 @@ timezone         = "Europe/Warsaw"
 keyboard         = "pl"
 selinux          = "enforcing"
 firewall         = true
-services_enable  = ["sshd", "NetworkManager", "bluetooth", "cups", "fstrim.timer"]
+services_enable  = ["sshd", "NetworkManager", "bluetooth", "cups", "fstrim.timer", "cosmic-greeter"]
 services_disable = ["ModemManager"]
 
 [desktop]
-environment     = "kde"
+environment     = "cosmic"
 display_server  = "wayland"
 auto_login      = false
 auto_login_user = ""
@@ -35,7 +35,7 @@ timeout     = 5
 enabled            = true
 kickstart_embed    = true
 product_name       = "LegendaryOS"
-product_version    = "0.1.0"
+product_version    = "2026.06"
 webui              = true
 hide_shell         = false
 default_lang       = "pl_PL.UTF-8"
@@ -49,8 +49,8 @@ default_user_groups = ["wheel", "audio", "video", "gamemode", "input", "render"]
 output_dir   = "build/output"
 cache_dir    = "build/cache"
 compression  = "zstd"
-iso_label    = "LEGENDARYOS_1_0"
-iso_filename = "LegendaryOS-kde-fedora44.x86_64.iso"
+iso_label    = "LegendaryOS-2026-06"
+iso_filename = "LegendaryOS-cosmic-fedora44.x86_64.iso"
 jobs         = 4
 clean_build  = false
 # System filesystem type używany przez bootc-image-builder
@@ -79,7 +79,7 @@ registry   = "repo"
 # Obraz trafi do: ghcr.io/legendaryos-linux-system/legendaryos:1.0.0
 repo       = "LegendaryOS-Linux-System/legendaryos"
 image      = "legendaryos"
-tag        = "stable-kde"
+tag        = "stable"
 push       = false
 sign_image = false
 bootc_mode = true
@@ -87,17 +87,17 @@ bootc_mode = true
 # ── Branches — warianty OS z różnymi środowiskami graficznymi ─────────────────
 # Branch = ten sam obraz bazowy ale z innym DE
 # Budowane przez: legendaryos-builder build cloud --branch <name>
-# Każdy branch → osobny tag OCI: ghcr.io/.../legendaryos:1.0.0-gnome itp.
+# Każdy branch → osobny tag OCI: ghcr.io/.../legendaryos:1.0.0-kde itp.
 #
 # UWAGA: branches są zdefiniowane ale nie wdrożone w tym projekcie
 # Odkomentuj i dostosuj gdy będziesz gotowy na multi-DE buildy
 
 # [[branch]]
-# name            = "cosmic"
-# display_name    = "LegendaryOS COSMIC Edition"
-# desktop         = "cosmic"
-# description     = "LegendaryOS z COSMIC (System76) — nowoczesny Rust DE"
-# tag             = "1.0.0-cosmic"
+# name            = "kde"
+# display_name    = "LegendaryOS KDE Edition"
+# desktop         = "kde"
+# description     = "LegendaryOS z KDE Plasma"
+# tag             = "1.0.0-kde"
 # enabled         = false
-# extra_packages  = ["cosmic-session", "cosmic-settings", "cosmic-files", "cosmic-terminal"]
-# remove_packages = ["@kde-desktop-environment", "plasma-discover", "sddm"]
+# extra_packages  = ["@kde-desktop-environment", "sddm", "plasma-discover"]
+# remove_packages = ["cosmic-session", "cosmic-settings", "cosmic-greeter"]
