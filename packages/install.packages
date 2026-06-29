@@ -36,33 +36,25 @@ dmidecode                        # Informacje DMI/SMBIOS (model płyty, BIOS, RA
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 1. KDE PLASMA
+# 1. COSMIC DE (System76)
 # ════════════════════════════════════════════════════════════════════════════
 
-@kde-desktop-environment
-
-plasma-discover
-plasma-discover-notifier
-plasma-browser-integration
-plasma-nm
-plasma-pa
-plasma-vault
-plasma-thunderbolt
-plasma-sdk
-kdeplasma-addons
-kdeconnect
-kinfocenter
-kscreen
-kate
-dolphin
-dolphin-plugins
-ark
-spectacle
-gwenview
-kcalc
-
-sddm
-sddm-kcm
+cosmic-session                   # Główna sesja COSMIC DE
+cosmic-settings                  # Panel ustawień systemowych
+cosmic-settings-daemon           # Daemon ustawień (tło, wygląd, urządzenia)
+cosmic-files                     # Menadżer plików COSMIC
+cosmic-launcher                  # Launcher aplikacji (Alt+Space)
+cosmic-panel                     # Panel systemowy (taskbar + tray)
+cosmic-applets                   # Aplety panelu (sieć, dźwięk, zasilanie...)
+cosmic-bg                        # Menadżer tapet COSMIC
+cosmic-notifications             # Daemon powiadomień
+cosmic-osd                       # On-screen display (głośność, jasność)
+cosmic-screenshot                # Narzędzie do zrzutów ekranu
+cosmic-workspaces                # Zarządzanie przestrzeniami roboczymi
+cosmic-edit                      # Edytor tekstu COSMIC
+cosmic-store                     # Sklep z aplikacjami COSMIC (Flatpak frontend)
+cosmic-greeter                   # Menedżer logowania COSMIC (zastępuje SDDM)
+cosmic-idle                      # Daemon wygaszacza ekranu / idle
 
 # Terminal — WezTerm (domyślny, GPU-accelerated, napisany w Rust)
 # Repo: repos/wezterm.repo (COPR wezfurlong/wezterm-nightly)
@@ -70,9 +62,8 @@ wezterm-common                   # Główny pakiet WezTerm
 wezterm-mux-server               # Multiplexer server
 
 xorg-x11-server-Xwayland
-qt5-qtwayland
-qt6-qtwayland
-plasma-wayland-protocols
+wayland
+wayland-utils
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -84,7 +75,7 @@ pipewire-alsa
 pipewire-pulseaudio
 pipewire-libjack
 wireplumber
-pavucontrol-qt
+pavucontrol
 easyeffects
 
 
@@ -228,7 +219,6 @@ glibc-langpack-pl
 glibc-langpack-en
 
 flatpak
-plasma-discover-flatpak
 
 plocate
 bash
