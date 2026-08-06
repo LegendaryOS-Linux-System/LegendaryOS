@@ -1,0 +1,104 @@
+name: Build LegendaryOS
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.github/workflows/build.yml'
+
+  workflow_dispatch:
+    inputs:
+      edition:
+        description: 'Which edition to build'
+        required: true
+        type: choice
+        options:
+          - stable
+          - classic
+          - both
+        default: stable
+
+      builder-source:
+        description: 'How to get legendaryos-builder'
+        required: true
+        type: choice
+        options:
+          - release
+          - source
+        default: release
+
+      builder-version:
+        description: 'Builder release version (ignored when source=source)'
+        required: false
+        default: 'v0.5.3'
+
+# ── Default: release binary, stable edition ─────────────────────────────────
+# Override via workflow_dispatch inputs above.
+
+jobs:
+  # ── Stable ────────────────────────────────────────────────────────────────
+  stable:
+    name: Stable Edition
+    if: |
+      github.event_name == 'push' ||
+      inputs.edition == 'stable' ||
+      inputs.edition == 'both'
+    uses: ./.github/workflows/stable.yml
+    with:
+      builder-source: ${{ inputs.builder-source || 'release' }}
+      builder-version: ${{ inputs.builder-version || 'v0.5.3' }}
+    secrets:
+      LEGENDARYOS_BUILD: ${{ secrets.LEGENDARYOS_BUILD }}
+
+  # ── Classic ───────────────────────────────────────────────────────────────
+  classic:
+    name: Classic Edition
+    if: |
+      inputs.edition == 'classic' ||
+      inputs.edition == 'both'
+    uses: ./.github/workflows/classic.yml
+    with:
+      builder-source: ${{ inputs.builder-source || 'release' }}
+      builder-version: ${{ inputs.builder-version || 'v0.5.3' }}
+    secrets:
+      LEGENDARYOS_BUILD: ${{ secrets.LEGENDARYOS_BUILD }}
+
+  # ── Summary ───────────────────────────────────────────────────────────────
+  summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [stable, classic]
+    if: always()
+    steps:
+      - name: Print summary
+        run: |
+          echo "## LegendaryOS Build Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          stable_result="${{ needs.stable.result }}"
+          classic_result="${{ needs.classic.result }}"
+
+          if [ "$stable_result" = "success" ]; then
+            echo "| Stable  | ✅ Success |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$stable_result" = "failure" ]; then
+            echo "| Stable  | ❌ Failed — download **los-stable-logs** artifact |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$stable_result" = "skipped" ]; then
+            echo "| Stable  | ⏭ Skipped |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$classic_result" = "success" ]; then
+            echo "| Classic | ✅ Success |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$classic_result" = "failure" ]; then
+            echo "| Classic | ❌ Failed — download **los-classic-logs** artifact |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$classic_result" = "skipped" ]; then
+            echo "| Classic | ⏭ Skipped |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Fail the summary job if any required build failed
+          if [ "$stable_result" = "failure" ] || [ "$classic_result" = "failure" ]; then
+            echo ""
+            echo "::error::One or more builds failed. Download the logs artifact and send it for diagnostics."
+            exit 1
+          fi
