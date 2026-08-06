@@ -1,1 +1,139 @@
+name: Build LegendaryOS Classic
 
+on:
+  workflow_call:
+    inputs:
+      builder-source:
+        description: 'How to get legendaryos-builder: release | source'
+        required: true
+        type: string
+      builder-version:
+        description: 'Builder version tag (used when builder-source=release)'
+        required: false
+        type: string
+        default: 'v0.5.3'
+    secrets:
+      LEGENDARYOS_BUILD:
+        required: true
+
+  workflow_dispatch:
+    inputs:
+      builder-source:
+        description: 'How to get legendaryos-builder'
+        required: true
+        type: choice
+        options: [release, source]
+        default: release
+      builder-version:
+        description: 'Builder version (release only)'
+        required: false
+        default: 'v0.5.3'
+
+jobs:
+  build-classic:
+    name: Build Classic (mutable)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────
+      - name: Checkout LegendaryOS
+        uses: actions/checkout@v4
+
+      # ── System setup ────────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            podman skopeo python3 qemu-user-static
+
+      # ── Get legendaryos-builder ──────────────────────────────────
+      - name: Get builder (release binary)
+        if: inputs.builder-source == 'release'
+        run: |
+          curl -fsSL \
+            "https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/download/${{ inputs.builder-version }}/legendaryos-builder" \
+            -o /usr/local/bin/legendaryos-builder
+          chmod +x /usr/local/bin/legendaryos-builder
+          legendaryos-builder --version
+
+      - name: Get builder (build from source)
+        if: inputs.builder-source == 'source'
+        run: |
+          sudo apt-get install -y --no-install-recommends golang make
+          git clone --depth=1 \
+            https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder.git \
+            /tmp/los-builder
+          cd /tmp/los-builder
+          go mod vendor
+          make
+          sudo cp legendaryos-builder /usr/local/bin/legendaryos-builder
+          legendaryos-builder --version
+
+      # ── Registry login ───────────────────────────────────────────
+      - name: Log in to GHCR
+        run: |
+          echo "${{ secrets.LEGENDARYOS_BUILD }}" | \
+            podman login ghcr.io \
+              --username "${{ github.repository_owner }}" \
+              --password-stdin
+
+      # ── Build classic cloud image ────────────────────────────────
+      - name: Build classic cloud image (podman build + push)
+        run: |
+          sudo legendaryos-builder build cloud --classic \
+            --token "${{ secrets.LEGENDARYOS_BUILD }}"
+
+      # ── Build classic ISO ────────────────────────────────────────
+      - name: Build classic ISO
+        id: build_iso
+        run: |
+          sudo legendaryos-builder build iso --classic \
+            --token "${{ secrets.LEGENDARYOS_BUILD }}" \
+            --verbose 2>&1 | tee /tmp/build-classic-iso.log
+          echo "iso_log=/tmp/build-classic-iso.log" >> "$GITHUB_OUTPUT"
+
+      # ── Collect logs on failure ──────────────────────────────────
+      - name: Collect build logs
+        if: failure()
+        run: |
+          mkdir -p /tmp/los-logs
+
+          cp /tmp/build-classic-iso.log /tmp/los-logs/build-classic-iso.log 2>/dev/null || true
+          cp build/anaconda.ks          /tmp/los-logs/anaconda.ks            2>/dev/null || true
+          cp build/Containerfile        /tmp/los-logs/Containerfile          2>/dev/null || true
+          cp build/output/bib-config.toml /tmp/los-logs/bib-config.toml     2>/dev/null || true
+
+          sudo podman image inspect \
+            ghcr.io/legendaryos-linux-system/legendaryos:stable-classic \
+            > /tmp/los-logs/image-inspect.json 2>/dev/null || true
+
+          sudo podman images > /tmp/los-logs/podman-images.txt 2>/dev/null || true
+          df -h > /tmp/los-logs/df.txt 2>/dev/null || true
+
+          if [ -f build/output/oci-image/index.json ]; then
+            cp -r build/output/oci-image /tmp/los-logs/oci-image-meta 2>/dev/null || true
+          fi
+
+          cd /tmp
+          zip -r los-classic-logs.zip los-logs/
+          echo "::error::Build failed — download los-classic-logs.zip artifact for full diagnostics"
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: los-classic-logs
+          path: /tmp/los-classic-logs.zip
+          retention-days: 14
+
+      # ── Upload ISO artifact ──────────────────────────────────────
+      - name: Upload ISO
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LegendaryOS-classic-iso
+          path: build/output/*.iso
+          retention-days: 30
