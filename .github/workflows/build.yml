@@ -33,6 +33,10 @@ on:
         required: false
         default: 'v0.5.3'
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   # ── Stable ──────────────────────────────────────────────────────────────
   stable:
