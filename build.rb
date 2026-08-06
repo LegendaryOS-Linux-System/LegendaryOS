@@ -1,62 +1,74 @@
-require 'net/http'
-require 'json'
-require 'open-uri'
-require 'fileutils'
+#!/usr/bin/env ruby
 
-# Konfiguracja
-REPO = "LegendaryOS-Linux-System/LegendaryOS-Builder"
-TARGET_DIR = "build"
-# Zmień nazwę pliku, jeśli binarka w release nazywa się inaczej
-BINARY_NAME = "legendaryos-builder" 
+# Definiujemy ścieżkę do binarki, aby kod był czytelny
+BUILDER_BIN = "/usr/bin/legendaryos-builder"
 
-def get_latest_release_url
-  uri = URI("https://api.github.com/repos/#{REPO}/releases/latest")
-  response = Net::HTTP.get(uri)
-  data = JSON.parse(response)
+# Ścieżki plików docelowych
+WALLPAPER_SCRIPT = "scripts/after/set-default-wallpaper.sh"
+CONFIG_TOML      = "config.toml"
 
-  if data['assets'].nil? || data['assets'].empty?
-    puts "Błąd: Nie znaleziono plików (assets) w najnowszym wydaniu."
-    exit 1
-  end
+# Ścieżki źródłowe dla każdego środowiska
+SETUPS = {
+  "gnome"  => ".hidden/setup-gnome",
+  "cosmic" => ".hidden/setup-cosmic",
+}
 
-  # Szukamy odpowiedniego pliku – domyślnie bierzemy pierwszy asset, 
-  # lub możesz przefiltrować po nazwie, np. zawierającej 'linux' albo 'x86_64'
-  asset = data['assets'].first
-  
-  puts "Znaleziono najnowszą wersję: #{data['tag_name']}"
-  puts "Pobieranie pliku: #{asset['name']}"
-  
-  return asset['browser_download_url'], asset['name']
-end
+def apply_desktop_setup(desktop)
+  source_dir = SETUPS[desktop]
 
-def download_file(url, dest_path)
-  FileUtils.mkdir_p(TARGET_DIR)
-  
-  puts "Pobieranie..."
-  URI.open(url) do |remote_file|
-    File.open(dest_path, "wb") do |local_file|
-      local_file.write(remote_file.read)
+  wallpaper_src = "#{source_dir}/set-default-wallpaper.sh"
+  config_src    = "#{source_dir}/config.toml"
+
+  # Walidacja — sprawdzamy czy pliki źródłowe istnieją
+  [wallpaper_src, config_src].each do |path|
+    unless File.exist?(path)
+      puts "BŁĄD: Brak pliku źródłowego: #{path}"
+      exit 1
     end
   end
-  puts "Pobrano i zapisano w: #{dest_path}"
+
+  puts "Stosowanie konfiguracji dla środowiska: #{desktop}..."
+
+  # Nadpisz skrypt tapety
+  FileUtils.cp(wallpaper_src, WALLPAPER_SCRIPT)
+  puts "  ✓ #{WALLPAPER_SCRIPT} <- #{wallpaper_src}"
+
+  # Nadpisz config.toml obok tego skryptu (katalog główny)
+  FileUtils.cp(config_src, CONFIG_TOML)
+  puts "  ✓ #{CONFIG_TOML} <- #{config_src}"
 end
 
-# 1. Pobranie informacji o najnowszym release
-download_url, file_name = get_latest_release_url
-binary_path = File.join(TARGET_DIR, BINARY_NAME)
+# ── Główna logika ─────────────────────────────────────────────
 
-# 2. Pobranie binarki
-# Zapisujemy ją bezpośrednio pod docelową nazwą w katalogu build/
-download_file(download_url, binary_path)
+require "fileutils"
 
-# 3. Nadanie uprawnień chmod a+x (0755)
-puts "Nadawanie uprawnień wykonywania (chmod a+x)..."
-File.chmod(0755, binary_path)
+command = ARGV[0]
 
-# 4. Uruchomienie binarki z subkomendami: build --release
-puts "Uruchamianie binarki: #{binary_path} build --release"
-puts "--- Wynik działania programu ---"
+case command
+when "clean"
+  # Wywołanie dla: ruby build.rb clean
+  puts "Uruchamianie czyszczenia..."
+  success = system("sudo #{BUILDER_BIN} clean --all")
 
-# exec zastępuje bieżący proces Ruby procesem binarki, 
-# jeśli wolisz wrócić do skryptu po jej zakończeniu, użyj system() zamiast exec
-exec(binary_path, "build", "--release")
+when "--gnome", "--cosmic"
+  # Wywołanie dla: ruby build.rb --gnome
+  #                ruby build.rb --cosmic
+  desktop = command.delete_prefix("--")
+  apply_desktop_setup(desktop)
+  puts "Uruchamianie budowania wersji release..."
+  success = system("sudo #{BUILDER_BIN} build --release")
+
+when nil
+  # Wywołanie bez argumentów: ruby build.rb
+  puts "Uruchamianie budowania wersji release..."
+  success = system("sudo #{BUILDER_BIN} build --release")
+
+else
+  # Obsługa sytuacji, gdy ktoś poda nieznany argument
+  puts "Nieznany argument: #{command}"
+  puts "Użycie: ruby build.rb [clean | --blue | --cosmic]"
+  exit 1
+end
+
+# Kończymy skrypt z takim samym statusem, z jakim zakończył się proces builder-a
+exit success ? 0 : 1
