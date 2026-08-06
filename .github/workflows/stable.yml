@@ -58,13 +58,13 @@ jobs:
       - name: Get builder (build from source)
         if: inputs.builder-source == 'source'
         run: |
-          sudo apt-get install -y --no-install-recommends golang make
+          sudo apt-get install -y --no-install-recommends golang ruby
           git clone --depth=1 \
             https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder.git \
             /tmp/los-builder
           cd /tmp/los-builder
-          go mod vendor
-          make
+          ruby build.rb tidy
+          ruby build.rb
           sudo cp legendaryos-builder /usr/local/bin/legendaryos-builder
           legendaryos-builder --version
 
