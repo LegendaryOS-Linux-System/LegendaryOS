@@ -33,10 +33,6 @@ jobs:
   build-stable:
     name: Build Stable (bootc / immutable)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
     steps:
       # ── Checkout ────────────────────────────────────────────────
       - name: Checkout LegendaryOS
