@@ -1,0 +1,390 @@
+name: LegendaryOS Debugger
+
+on:
+  workflow_dispatch:
+    inputs:
+      image-ref:
+        description: 'Container image to debug'
+        required: false
+        default: 'ghcr.io/legendaryos-linux-system/legendaryos:stable'
+
+      checks:
+        description: 'Which checks to run'
+        required: true
+        type: choice
+        options:
+          - all
+          - ostree-layer
+          - image-metadata
+          - kickstart
+          - bib-config
+          - disk-space
+          - podman-info
+          - ostree-commit
+        default: all
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  debugger:
+    name: Debug (${{ inputs.checks }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            podman skopeo python3
+
+      # ── Disk space ────────────────────────────────────────────────────────
+      - name: '[disk-space] Show available disk space'
+        if: inputs.checks == 'all' || inputs.checks == 'disk-space'
+        run: |
+          echo "::group::df -h"
+          df -h
+          echo "::endgroup::"
+          echo "::group::du /tmp /var/lib/containers 2>/dev/null"
+          du -sh /tmp /var/lib/containers 2>/dev/null || true
+          echo "::endgroup::"
+
+      # ── Podman info ───────────────────────────────────────────────────────
+      - name: '[podman-info] Podman system info'
+        if: inputs.checks == 'all' || inputs.checks == 'podman-info'
+        run: |
+          echo "::group::podman version"
+          podman version
+          echo "::endgroup::"
+          echo "::group::podman info"
+          podman info
+          echo "::endgroup::"
+          echo "::group::podman images"
+          sudo podman images
+          echo "::endgroup::"
+
+      # ── Pull image ────────────────────────────────────────────────────────
+      - name: Pull image
+        if: |
+          inputs.checks == 'all' ||
+          inputs.checks == 'ostree-layer' ||
+          inputs.checks == 'image-metadata' ||
+          inputs.checks == 'ostree-commit'
+        env:
+          GITHUB_TOKEN: ${{ secrets.LEGENDARYOS_BUILD }}
+        run: |
+          echo "$GITHUB_TOKEN" | sudo podman login ghcr.io \
+            --username "${{ github.repository_owner }}" \
+            --password-stdin
+          sudo podman pull --platform=linux/amd64 "${{ inputs.image-ref }}"
+
+      # ── Image metadata ────────────────────────────────────────────────────
+      - name: '[image-metadata] Inspect image labels, layers, config'
+        if: inputs.checks == 'all' || inputs.checks == 'image-metadata'
+        run: |
+          sudo python3 << 'EOF'
+          import json, subprocess
+
+          img = "${{ inputs.image-ref }}"
+          out = subprocess.check_output(['podman','image','inspect', img])
+          data = json.loads(out)[0]
+
+          print("=" * 60)
+          print("IMAGE METADATA")
+          print("=" * 60)
+
+          print(f"\nID:           {data.get('Id','')[:16]}")
+          print(f"Architecture: {data.get('Architecture','')}")
+          print(f"GraphDriver:  {data.get('GraphDriver',{}).get('Name','')}")
+
+          layers = data.get('RootFS', {}).get('Layers', [])
+          print(f"\nLayers ({len(layers)}):")
+          for l in layers:
+              print(f"  {l}")
+
+          labels = data.get('Config', {}).get('Labels', {})
+          print(f"\nLabels ({len(labels)}):")
+          ostree_keys = [k for k in labels if 'ostree' in k.lower() or 'bootc' in k.lower() or 'rpmostree' in k.lower()]
+          other_keys  = [k for k in labels if k not in ostree_keys]
+          for k in ostree_keys:
+              print(f"  [ostree] {k} = {labels[k]}")
+          for k in other_keys:
+              print(f"           {k} = {labels[k]}")
+
+          # Cross-check ostree.final-diffid vs actual layer DiffID
+          final_diffid = labels.get('ostree.final-diffid', '')
+          actual_diffid = layers[0] if layers else ''
+          print(f"\nostree.final-diffid:  {final_diffid}")
+          print(f"Actual layer DiffID:  {actual_diffid}")
+          if final_diffid and actual_diffid:
+              if final_diffid == actual_diffid:
+                  print("✅ DiffIDs MATCH — ostree install should work")
+              else:
+                  print("❌ DiffID MISMATCH — this will cause 'Missing ostree.final-diffid' during install!")
+                  print("   Root cause: GHCR recompressed the layer (zstd), changing its sha256")
+          EOF
+
+      # ── OCI layer analysis ────────────────────────────────────────────────
+      - name: '[ostree-layer] Analyse OCI layer for ostree/sysroot structure'
+        if: inputs.checks == 'all' || inputs.checks == 'ostree-layer'
+        run: |
+          echo "Checking available disk space..."
+          df -h /tmp
+
+          sudo python3 << 'EOF'
+          import json, tarfile, subprocess, os, sys
+
+          img = "${{ inputs.image-ref }}"
+          oci = '/tmp/los-oci'
+
+          print("Exporting image to OCI dir...")
+          result = subprocess.run(
+              ['podman','save','--format=oci-dir','-o', oci, img],
+              capture_output=True, text=True
+          )
+          if result.returncode != 0:
+              print(f"❌ podman save failed: {result.stderr}")
+              sys.exit(1)
+          print("Export done.")
+
+          idx = json.load(open(f'{oci}/index.json'))
+          md  = idx['manifests'][0]['digest'].replace('sha256:','')
+          mf  = json.load(open(f'{oci}/blobs/sha256/{md}'))
+          cfg_digest = mf['config']['digest'].replace('sha256:','')
+          cfg = json.load(open(f'{oci}/blobs/sha256/{cfg_digest}'))
+
+          print("\n" + "=" * 60)
+          print("OCI LAYER ANALYSIS")
+          print("=" * 60)
+
+          print(f"\nLayers in manifest: {len(mf['layers'])}")
+          for i, l in enumerate(mf['layers']):
+              print(f"  [{i}] {l['digest']}  mediaType={l['mediaType']}")
+
+          diff_ids = cfg.get('rootfs',{}).get('diff_ids',[])
+          print(f"\ndiff_ids in config: {diff_ids}")
+
+          labels = cfg.get('config',{}).get('Labels',{})
+          final_diffid = labels.get('ostree.final-diffid','(not set)')
+          print(f"ostree.final-diffid: {final_diffid}")
+
+          if diff_ids:
+              actual = diff_ids[0]
+              if actual == final_diffid:
+                  print("✅ DiffID in OCI dir MATCHES label")
+              else:
+                  print(f"❌ MISMATCH in OCI dir!")
+                  print(f"   label:  {final_diffid}")
+                  print(f"   actual: {actual}")
+
+          # Inspect layer tar contents
+          layer_digest = mf['layers'][0]['digest'].replace('sha256:','')
+          layer_path   = f'{oci}/blobs/sha256/{layer_digest}'
+          layer_size   = os.path.getsize(layer_path)
+          print(f"\nLayer blob: {layer_digest[:16]}  size: {layer_size/(1024**3):.2f} GB")
+
+          print("\nSampling layer contents (first 2000 entries)...")
+          try:
+              t = tarfile.open(layer_path)
+              names = []
+              for i, m in enumerate(t):
+                  names.append(m.name)
+                  if i >= 2000:
+                      break
+
+              ostree_repo    = [n for n in names if 'ostree/repo/objects' in n][:10]
+              ostree_refs    = [n for n in names if 'ostree/repo/refs'    in n][:5]
+              sysroot        = [n for n in names if n.startswith('sysroot')][:10]
+              boot           = [n for n in names if n.startswith('boot')][:5]
+
+              print(f"\nostree/repo/objects ({len(ostree_repo)} shown):")
+              for n in ostree_repo: print(f"  {n}")
+
+              print(f"\nostree/repo/refs ({len(ostree_refs)} shown):")
+              for n in ostree_refs: print(f"  {n}")
+
+              print(f"\nsysroot/ ({len(sysroot)} shown):")
+              for n in sysroot: print(f"  {n}")
+
+              print(f"\nboot/ ({len(boot)} shown):")
+              for n in boot: print(f"  {n}")
+
+              if not ostree_repo and not sysroot:
+                  print("\n❌ No ostree/repo/objects or sysroot/ found in layer!")
+                  print("   This image is NOT a valid bootc/ostree image.")
+              else:
+                  print("\n✅ ostree structure found in layer")
+
+              print(f"\nTotal entries sampled: {len(names)}")
+          except Exception as e:
+              print(f"❌ Failed to read layer tar: {e}")
+          EOF
+
+      # ── ostree commit object ──────────────────────────────────────────────
+      - name: '[ostree-commit] Check ostree commit object inside layer'
+        if: inputs.checks == 'all' || inputs.checks == 'ostree-commit'
+        run: |
+          sudo python3 << 'EOF'
+          import json, tarfile, subprocess, os, sys
+
+          img = "${{ inputs.image-ref }}"
+          oci = '/tmp/los-oci'
+
+          if not os.path.exists(f'{oci}/index.json'):
+              print("OCI dir not found, exporting...")
+              subprocess.run(['podman','save','--format=oci-dir','-o',oci,img], check=True)
+
+          idx = json.load(open(f'{oci}/index.json'))
+          md  = idx['manifests'][0]['digest'].replace('sha256:','')
+          mf  = json.load(open(f'{oci}/blobs/sha256/{md}'))
+          cfg_digest = mf['config']['digest'].replace('sha256:','')
+          cfg = json.load(open(f'{oci}/blobs/sha256/{cfg_digest}'))
+
+          labels    = cfg.get('config',{}).get('Labels',{})
+          commit_id = labels.get('ostree.commit','')
+          print(f"ostree.commit from label: {commit_id}")
+
+          layer_digest = mf['layers'][0]['digest'].replace('sha256:','')
+          layer_path   = f'{oci}/blobs/sha256/{layer_digest}'
+
+          print("\nSearching for commit object in layer tar...")
+          print("=" * 60)
+          found_commit = False
+          try:
+              t = tarfile.open(layer_path)
+              for m in t:
+                  if 'ostree/repo/objects' in m.name and m.name.endswith('.commit'):
+                      print(f"✅ Found commit object: {m.name}  size={m.size}")
+                      found_commit = True
+                      break
+                  if 'ostree/repo/objects' in m.name and not m.name.endswith('/'):
+                      obj_type = m.name.split('.')[-1] if '.' in m.name else 'unknown'
+                      if obj_type in ('commit','dirtree','dirmeta','file'):
+                          print(f"  object: {m.name}  type={obj_type}")
+          except Exception as e:
+              print(f"❌ Error reading layer: {e}")
+
+          if not found_commit:
+              print("❌ No .commit object found in ostree/repo/objects/")
+              print("   This will cause 'Expected commit object, not File' during install")
+          EOF
+
+      # ── Kickstart validation ──────────────────────────────────────────────
+      - name: '[kickstart] Validate generated kickstart'
+        if: inputs.checks == 'all' || inputs.checks == 'kickstart'
+        run: |
+          if [ ! -f build/anaconda.ks ]; then
+            echo "No anaconda.ks found — run a build first or this check is not applicable"
+            exit 0
+          fi
+
+          echo "::group::anaconda.ks content"
+          cat build/anaconda.ks
+          echo "::endgroup::"
+
+          echo "--- Validation ---"
+          python3 << 'EOF'
+          content = open('build/anaconda.ks').read()
+          errors = []
+          warnings = []
+
+          # Check for double-% bug
+          for bad in ['%%packages','%%post','%%end','%%anaconda','%%pre']:
+              if bad in content:
+                  errors.append(f"Found '{bad}' — should be '{bad[1:]}'")
+
+          # Check required sections
+          if '%packages' not in content:
+              warnings.append("No %packages section")
+          if '%end' not in content:
+              errors.append("No %end found")
+          if '%post' not in content:
+              warnings.append("No %post section")
+
+          # Check for unknown sections
+          import re
+          sections = re.findall(r'^(%\w+)', content, re.MULTILINE)
+          known = {'%packages','%end','%post','%pre','%anaconda','%addon','%include'}
+          for s in sections:
+              if s not in known:
+                  errors.append(f"Unknown kickstart section: {s}")
+
+          if errors:
+              print("❌ ERRORS:")
+              for e in errors: print(f"   {e}")
+          if warnings:
+              print("⚠  WARNINGS:")
+              for w in warnings: print(f"   {w}")
+          if not errors and not warnings:
+              print("✅ Kickstart looks valid")
+          EOF
+
+      # ── BIB config validation ─────────────────────────────────────────────
+      - name: '[bib-config] Validate BIB config'
+        if: inputs.checks == 'all' || inputs.checks == 'bib-config'
+        run: |
+          if [ ! -f build/output/bib-config.toml ]; then
+            echo "No bib-config.toml found — run a build first"
+            exit 0
+          fi
+
+          echo "::group::bib-config.toml content"
+          cat build/output/bib-config.toml
+          echo "::endgroup::"
+
+          python3 << 'EOF'
+          content = open('build/output/bib-config.toml').read()
+          errors = []
+
+          # Check for known-bad keys
+          if 'installer].product' in content:
+              errors.append("[customizations.installer].product is NOT supported by BIB (use [customizations.iso])")
+
+          if errors:
+              print("❌ ERRORS:")
+              for e in errors: print(f"   {e}")
+          else:
+              print("✅ BIB config looks valid")
+          EOF
+
+      # ── Collect all debug output ──────────────────────────────────────────
+      - name: Collect debug artifacts
+        if: always()
+        run: |
+          mkdir -p /tmp/debug-out
+
+          # Kickstart
+          cp build/anaconda.ks             /tmp/debug-out/ 2>/dev/null || true
+          cp build/Containerfile           /tmp/debug-out/ 2>/dev/null || true
+          cp build/output/bib-config.toml /tmp/debug-out/ 2>/dev/null || true
+
+          # Image inspect
+          sudo podman image inspect "${{ inputs.image-ref }}" \
+            > /tmp/debug-out/image-inspect.json 2>/dev/null || true
+
+          # Podman images list
+          sudo podman images > /tmp/debug-out/podman-images.txt 2>/dev/null || true
+
+          # OCI dir metadata (without the huge layer blob)
+          if [ -d /tmp/los-oci ]; then
+            mkdir -p /tmp/debug-out/oci-meta
+            cp /tmp/los-oci/index.json /tmp/debug-out/oci-meta/ 2>/dev/null || true
+            find /tmp/los-oci/blobs/sha256 -size -1M \
+              -exec cp {} /tmp/debug-out/oci-meta/ \; 2>/dev/null || true
+          fi
+
+          df -h > /tmp/debug-out/df.txt
+
+          cd /tmp && zip -r debugger-output.zip debug-out/
+
+      - name: Upload debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debugger-output
+          path: /tmp/debugger-output.zip
+          retention-days: 14
