@@ -63,7 +63,6 @@ jobs:
             https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder.git \
             /tmp/los-builder
           cd /tmp/los-builder
-          ruby build.rb tidy
           ruby build.rb
           sudo cp legendaryos-builder /usr/local/bin/legendaryos-builder
           legendaryos-builder --version
