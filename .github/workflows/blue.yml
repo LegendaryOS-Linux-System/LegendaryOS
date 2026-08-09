@@ -1,1 +1,96 @@
+name: Build LegendaryOS Blue
 
+on:
+  push:
+    branches: [blue]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+
+  workflow_dispatch:
+    inputs:
+      builder-source:
+        description: 'How to get legendaryos-builder'
+        required: true
+        type: choice
+        options: [release, source]
+        default: release
+      builder-version:
+        description: 'Builder version (release only)'
+        required: false
+        default: 'v0.5.3'
+      build-target:
+        description: 'What to build'
+        required: true
+        type: choice
+        options: [all, cloud, iso]
+        default: all
+      edition:
+        description: 'Which edition to build'
+        required: true
+        type: choice
+        options: [stable, classic, both]
+        default: stable
+
+jobs:
+  # ── Stable on blue branch ─────────────────────────────────────────────────
+  stable-blue:
+    name: Stable Edition (blue)
+    if: ${{ github.event_name == 'push' || inputs.edition == 'stable' || inputs.edition == 'both' }}
+    uses: ./.github/workflows/stable.yml
+    with:
+      builder-source: ${{ inputs.builder-source || 'release' }}
+      builder-version: ${{ inputs.builder-version || 'v0.5.3' }}
+      build-target: ${{ inputs.build-target || 'all' }}
+      ref: blue
+    secrets:
+      LEGENDARYOS_BUILD: ${{ secrets.LEGENDARYOS_BUILD }}
+
+  # ── Classic on blue branch ─────────────────────────────────────────────────
+  classic-blue:
+    name: Classic Edition (blue)
+    if: ${{ inputs.edition == 'classic' || inputs.edition == 'both' }}
+    uses: ./.github/workflows/classic.yml
+    with:
+      builder-source: ${{ inputs.builder-source || 'release' }}
+      builder-version: ${{ inputs.builder-version || 'v0.5.3' }}
+      build-target: ${{ inputs.build-target || 'all' }}
+      ref: blue
+    secrets:
+      LEGENDARYOS_BUILD: ${{ secrets.LEGENDARYOS_BUILD }}
+
+  # ── Summary ───────────────────────────────────────────────────────────────
+  summary:
+    name: Build Summary (blue)
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [stable-blue, classic-blue]
+    steps:
+      - name: Print summary
+        run: |
+          echo "## LegendaryOS Blue Build Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Edition | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---------|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          stable_result="${{ needs.stable-blue.result }}"
+          classic_result="${{ needs.classic-blue.result }}"
+
+          case "$stable_result" in
+            success) echo "| Stable (blue)  | ✅ Success |" >> "$GITHUB_STEP_SUMMARY" ;;
+            failure) echo "| Stable (blue)  | ❌ Failed — download **los-stable-logs** artifact |" >> "$GITHUB_STEP_SUMMARY" ;;
+            skipped) echo "| Stable (blue)  | ⏭ Skipped |" >> "$GITHUB_STEP_SUMMARY" ;;
+            *)       echo "| Stable (blue)  | ⚠ $stable_result |" >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
+
+          case "$classic_result" in
+            success) echo "| Classic (blue) | ✅ Success |" >> "$GITHUB_STEP_SUMMARY" ;;
+            failure) echo "| Classic (blue) | ❌ Failed — download **los-classic-logs** artifact |" >> "$GITHUB_STEP_SUMMARY" ;;
+            skipped) echo "| Classic (blue) | ⏭ Skipped |" >> "$GITHUB_STEP_SUMMARY" ;;
+            *)       echo "| Classic (blue) | ⚠ $classic_result |" >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
+
+          if [ "$stable_result" = "failure" ] || [ "$classic_result" = "failure" ]; then
+            echo "::error::One or more builds failed. Download the logs artifact and send it for diagnostics."
+            exit 1
+          fi
