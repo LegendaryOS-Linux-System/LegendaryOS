@@ -33,19 +33,17 @@ jobs:
   build-stable:
     name: Build Stable (bootc / immutable)
     runs-on: ubuntu-latest
+
     steps:
-      # ── Checkout ────────────────────────────────────────────────
       - name: Checkout LegendaryOS
         uses: actions/checkout@v4
 
-      # ── System setup ────────────────────────────────────────────
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             podman skopeo python3 qemu-user-static
 
-      # ── Get legendaryos-builder ──────────────────────────────────
       - name: Get builder (release binary)
         if: inputs.builder-source == 'release'
         run: |
@@ -67,67 +65,32 @@ jobs:
           sudo cp legendaryos-builder /usr/local/bin/legendaryos-builder
           legendaryos-builder --version
 
-      # ── Registry login ───────────────────────────────────────────
-      - name: Log in to GHCR
-        run: |
-          echo "${{ secrets.LEGENDARYOS_BUILD }}" | \
-            podman login ghcr.io \
-              --username "${{ github.repository_owner }}" \
-              --password-stdin
-
-      # ── Build cloud image ────────────────────────────────────────
       - name: Build cloud image (podman build + push)
+        env:
+          GITHUB_TOKEN: ${{ secrets.LEGENDARYOS_BUILD }}
         run: |
-          sudo legendaryos-builder build cloud \
-            --token "${{ secrets.LEGENDARYOS_BUILD }}"
+          sudo -E legendaryos-builder build cloud -push
 
-      # ── Build ISO ─────────────────────────────────────────────────
       - name: Build ISO
-        id: build_iso
+        env:
+          GITHUB_TOKEN: ${{ secrets.LEGENDARYOS_BUILD }}
         run: |
-          sudo legendaryos-builder build iso \
-            --token "${{ secrets.LEGENDARYOS_BUILD }}" \
-            --verbose 2>&1 | tee /tmp/build-iso.log
-          echo "iso_log=/tmp/build-iso.log" >> "$GITHUB_OUTPUT"
+          sudo -E legendaryos-builder build iso --verbose 2>&1 | tee /tmp/build-iso.log
 
-      # ── Collect logs on failure ──────────────────────────────────
       - name: Collect build logs
         if: failure()
         run: |
           mkdir -p /tmp/los-logs
-
-          # Builder log
-          cp /tmp/build-iso.log /tmp/los-logs/build-iso.log 2>/dev/null || true
-
-          # Anaconda kickstart
-          cp build/anaconda.ks /tmp/los-logs/anaconda.ks 2>/dev/null || true
-
-          # Containerfile
-          cp build/Containerfile /tmp/los-logs/Containerfile 2>/dev/null || true
-
-          # BIB config
-          cp build/output/bib-config.toml /tmp/los-logs/bib-config.toml 2>/dev/null || true
-
-          # podman image inspect
+          cp /tmp/build-iso.log              /tmp/los-logs/ 2>/dev/null || true
+          cp build/anaconda.ks               /tmp/los-logs/ 2>/dev/null || true
+          cp build/Containerfile             /tmp/los-logs/ 2>/dev/null || true
+          cp build/output/bib-config.toml   /tmp/los-logs/ 2>/dev/null || true
+          sudo podman images                 > /tmp/los-logs/podman-images.txt 2>/dev/null || true
           sudo podman image inspect \
             ghcr.io/legendaryos-linux-system/legendaryos:stable \
             > /tmp/los-logs/image-inspect.json 2>/dev/null || true
-
-          # podman images list
-          sudo podman images > /tmp/los-logs/podman-images.txt 2>/dev/null || true
-
-          # disk usage
-          df -h > /tmp/los-logs/df.txt 2>/dev/null || true
-
-          # OCI image metadata (if still present)
-          if [ -f build/output/oci-image/index.json ]; then
-            cp -r build/output/oci-image /tmp/los-logs/oci-image-meta 2>/dev/null || true
-          fi
-
-          # Zip everything
-          cd /tmp
-          zip -r los-stable-logs.zip los-logs/
-          echo "::error::Build failed — download los-stable-logs.zip artifact for full diagnostics"
+          df -h                              > /tmp/los-logs/df.txt 2>/dev/null || true
+          cd /tmp && zip -r los-stable-logs.zip los-logs/
 
       - name: Upload failure logs
         if: failure()
@@ -137,7 +100,6 @@ jobs:
           path: /tmp/los-stable-logs.zip
           retention-days: 14
 
-      # ── Upload ISO artifact ──────────────────────────────────────
       - name: Upload ISO
         if: success()
         uses: actions/upload-artifact@v4
