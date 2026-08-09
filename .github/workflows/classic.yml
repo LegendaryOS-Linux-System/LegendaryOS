@@ -4,14 +4,22 @@ on:
   workflow_call:
     inputs:
       builder-source:
-        description: 'How to get legendaryos-builder: release | source'
         required: true
         type: string
       builder-version:
-        description: 'Builder version tag (used when builder-source=release)'
         required: false
         type: string
         default: 'v0.5.3'
+      build-target:
+        description: 'What to build: all | cloud | iso'
+        required: false
+        type: string
+        default: 'all'
+      ref:
+        description: 'Branch/tag/commit to checkout'
+        required: false
+        type: string
+        default: ''
     secrets:
       LEGENDARYOS_BUILD:
         required: true
@@ -28,6 +36,12 @@ on:
         description: 'Builder version (release only)'
         required: false
         default: 'v0.5.3'
+      build-target:
+        description: 'What to build'
+        required: true
+        type: choice
+        options: [all, cloud, iso]
+        default: all
 
 jobs:
   build-classic:
@@ -37,6 +51,8 @@ jobs:
     steps:
       - name: Checkout LegendaryOS
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Install dependencies
         run: |
@@ -65,15 +81,15 @@ jobs:
           sudo cp legendaryos-builder /usr/local/bin/legendaryos-builder
           legendaryos-builder --version
 
-      # Classic edition uses a separate config — special_type = "classic" in config.toml
-      # The builder detects this automatically, no --classic flag needed
       - name: Build classic cloud image (podman build + push)
+        if: inputs.build-target == 'all' || inputs.build-target == 'cloud'
         env:
           GITHUB_TOKEN: ${{ secrets.LEGENDARYOS_BUILD }}
         run: |
           sudo -E legendaryos-builder build cloud -push
 
       - name: Build classic ISO
+        if: inputs.build-target == 'all' || inputs.build-target == 'iso'
         env:
           GITHUB_TOKEN: ${{ secrets.LEGENDARYOS_BUILD }}
         run: |
@@ -103,7 +119,7 @@ jobs:
           retention-days: 14
 
       - name: Upload ISO
-        if: success()
+        if: success() && (inputs.build-target == 'all' || inputs.build-target == 'iso')
         uses: actions/upload-artifact@v4
         with:
           name: LegendaryOS-classic-iso
