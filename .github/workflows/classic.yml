@@ -33,19 +33,17 @@ jobs:
   build-classic:
     name: Build Classic (mutable)
     runs-on: ubuntu-latest
+
     steps:
-      # ── Checkout ────────────────────────────────────────────────
       - name: Checkout LegendaryOS
         uses: actions/checkout@v4
 
-      # ── System setup ────────────────────────────────────────────
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             podman skopeo python3 qemu-user-static
 
-      # ── Get legendaryos-builder ──────────────────────────────────
       - name: Get builder (release binary)
         if: inputs.builder-source == 'release'
         run: |
@@ -67,54 +65,34 @@ jobs:
           sudo cp legendaryos-builder /usr/local/bin/legendaryos-builder
           legendaryos-builder --version
 
-      # ── Registry login ───────────────────────────────────────────
-      - name: Log in to GHCR
-        run: |
-          echo "${{ secrets.LEGENDARYOS_BUILD }}" | \
-            podman login ghcr.io \
-              --username "${{ github.repository_owner }}" \
-              --password-stdin
-
-      # ── Build classic cloud image ────────────────────────────────
+      # Classic edition uses a separate config — special_type = "classic" in config.toml
+      # The builder detects this automatically, no --classic flag needed
       - name: Build classic cloud image (podman build + push)
+        env:
+          GITHUB_TOKEN: ${{ secrets.LEGENDARYOS_BUILD }}
         run: |
-          sudo legendaryos-builder build cloud --classic \
-            --token "${{ secrets.LEGENDARYOS_BUILD }}"
+          sudo -E legendaryos-builder build cloud -push
 
-      # ── Build classic ISO ────────────────────────────────────────
       - name: Build classic ISO
-        id: build_iso
+        env:
+          GITHUB_TOKEN: ${{ secrets.LEGENDARYOS_BUILD }}
         run: |
-          sudo legendaryos-builder build iso --classic \
-            --token "${{ secrets.LEGENDARYOS_BUILD }}" \
-            --verbose 2>&1 | tee /tmp/build-classic-iso.log
-          echo "iso_log=/tmp/build-classic-iso.log" >> "$GITHUB_OUTPUT"
+          sudo -E legendaryos-builder build iso --verbose 2>&1 | tee /tmp/build-classic-iso.log
 
-      # ── Collect logs on failure ──────────────────────────────────
       - name: Collect build logs
         if: failure()
         run: |
           mkdir -p /tmp/los-logs
-
-          cp /tmp/build-classic-iso.log /tmp/los-logs/build-classic-iso.log 2>/dev/null || true
-          cp build/anaconda.ks          /tmp/los-logs/anaconda.ks            2>/dev/null || true
-          cp build/Containerfile        /tmp/los-logs/Containerfile          2>/dev/null || true
-          cp build/output/bib-config.toml /tmp/los-logs/bib-config.toml     2>/dev/null || true
-
+          cp /tmp/build-classic-iso.log      /tmp/los-logs/ 2>/dev/null || true
+          cp build/anaconda.ks               /tmp/los-logs/ 2>/dev/null || true
+          cp build/Containerfile             /tmp/los-logs/ 2>/dev/null || true
+          cp build/output/bib-config.toml   /tmp/los-logs/ 2>/dev/null || true
+          sudo podman images                 > /tmp/los-logs/podman-images.txt 2>/dev/null || true
           sudo podman image inspect \
             ghcr.io/legendaryos-linux-system/legendaryos:stable-classic \
             > /tmp/los-logs/image-inspect.json 2>/dev/null || true
-
-          sudo podman images > /tmp/los-logs/podman-images.txt 2>/dev/null || true
-          df -h > /tmp/los-logs/df.txt 2>/dev/null || true
-
-          if [ -f build/output/oci-image/index.json ]; then
-            cp -r build/output/oci-image /tmp/los-logs/oci-image-meta 2>/dev/null || true
-          fi
-
-          cd /tmp
-          zip -r los-classic-logs.zip los-logs/
-          echo "::error::Build failed — download los-classic-logs.zip artifact for full diagnostics"
+          df -h                              > /tmp/los-logs/df.txt 2>/dev/null || true
+          cd /tmp && zip -r los-classic-logs.zip los-logs/
 
       - name: Upload failure logs
         if: failure()
@@ -124,7 +102,6 @@ jobs:
           path: /tmp/los-classic-logs.zip
           retention-days: 14
 
-      # ── Upload ISO artifact ──────────────────────────────────────
       - name: Upload ISO
         if: success()
         uses: actions/upload-artifact@v4
