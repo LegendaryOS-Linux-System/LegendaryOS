@@ -1,0 +1,91 @@
+name: "Pobierz legendaryos-builder"
+description: >
+  Instaluje legendaryos-builder w /usr/local/bin: albo pobiera gotową binarkę z wydania
+  (release), albo buduje ją ze źródeł (source) -- wtedy pobiera też bit i hsharp (H#).
+
+inputs:
+  source:
+    description: "release = gotowa binarka z GitHub Releases, source = budowa ze źródeł"
+    required: false
+    default: "release"
+  version:
+    description: "Tag wydania (release) albo gałąź/tag do sklonowania (source). `latest` = najnowsza wersja."
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Zainstaluj legendaryos-builder
+      shell: bash
+      env:
+        BUILDER_SOURCE: ${{ inputs.source }}
+        BUILDER_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        SUDO=""
+        if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
+
+        # narzędzia pomocnicze (w kontenerze debian:testing ich nie ma)
+        if ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1; then
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends curl git ca-certificates
+        fi
+
+        ORG="LegendaryOS-Linux-System"
+        BUILDER_REPO="https://github.com/${ORG}/LegendaryOS-Builder"
+
+        # URL do assetu wydania: najnowsza wersja albo konkretny tag
+        asset_url() {  # $1=repo-url $2=wersja $3=nazwa assetu
+          if [ "$2" = "latest" ] || [ -z "$2" ]; then
+            echo "$1/releases/latest/download/$3"
+          else
+            echo "$1/releases/download/$2/$3"
+          fi
+        }
+
+        if [ "$BUILDER_SOURCE" = "release" ]; then
+          echo "::group::Pobieranie gotowej binarki legendaryos-builder (${BUILDER_VERSION})"
+          URL="$(asset_url "$BUILDER_REPO" "$BUILDER_VERSION" legendaryos-builder)"
+          echo "$URL"
+          curl -fsSL --retry 3 -o /tmp/legendaryos-builder "$URL"
+          $SUDO install -m 0755 /tmp/legendaryos-builder /usr/local/bin/legendaryos-builder
+          echo "::endgroup::"
+        elif [ "$BUILDER_SOURCE" = "source" ]; then
+          echo "::group::Pobieranie bit i hsharp"
+          # menedżer pakietów
+          curl -fsSL --retry 3 -o /tmp/bit \
+            "$(asset_url "https://github.com/HackerOS-Linux-System/bit" latest bit)"
+          $SUDO install -m 0755 /tmp/bit /usr/local/bin/bit
+          # kompilator H# (binarka `hsharp`; `h#` to ta sama binarka pod drugą nazwą)
+          curl -fsSL --retry 3 -o /tmp/hsharp \
+            "$(asset_url "https://github.com/HackerOS-Linux-System/H-Sharp" latest hsharp)"
+          $SUDO install -m 0755 /tmp/hsharp /usr/local/bin/hsharp
+          $SUDO ln -sf /usr/local/bin/hsharp "/usr/local/bin/h#"
+          echo "::endgroup::"
+
+          echo "::group::Klonowanie LegendaryOS-Builder"
+          SRC="${RUNNER_TEMP:-/tmp}/legendaryos-builder-src"
+          rm -rf "$SRC"
+          if [ "$BUILDER_VERSION" = "latest" ] || [ -z "$BUILDER_VERSION" ]; then
+            git clone --depth 1 "${BUILDER_REPO}.git" "$SRC"
+          else
+            git clone --depth 1 --branch "$BUILDER_VERSION" "${BUILDER_REPO}.git" "$SRC"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Budowa legendaryos-builder ze źródeł"
+          cd "$SRC"
+          bit install
+          "h#" check src/main.h#
+          bit build --release
+          ./cache/build/release/legendaryos-builder selftest
+          $SUDO install -m 0755 cache/build/release/legendaryos-builder /usr/local/bin/legendaryos-builder
+          echo "::endgroup::"
+        else
+          echo "::error::Nieznane źródło buildera: '$BUILDER_SOURCE' (release | source)"
+          exit 1
+        fi
+
+        legendaryos-builder --version
