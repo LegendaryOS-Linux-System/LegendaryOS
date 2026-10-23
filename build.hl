@@ -1,1 +1,30 @@
+#!/usr/bin/hl
+using <gen 2>
 
+~> ==> LegendaryOS -- start budowy
+
+> legendaryos-builder run-scripts .
+? err
+    ~> BŁĄD: jeden ze skryptów scripts/*.hl zwrócił błąd.
+    > exit 1
+done
+
+> legendaryos-builder stage .
+? err
+    ~> BŁĄD: przygotowanie nakładki nie powiodło się.
+    > exit 1
+done
+
+> legendaryos-builder lb-config .
+? err
+    ~> BŁĄD: konfiguracja budowy (lb config / podman) nie powiodła się.
+    > exit 1
+done
+
+> legendaryos-builder lb-build .
+? err
+    ~> BŁĄD: budowa (lb build / podman + bootc-image-builder) nie powiodła się.
+    > exit 1
+done
+
+~> ==> Gotowe! Artefakty: build/out/
