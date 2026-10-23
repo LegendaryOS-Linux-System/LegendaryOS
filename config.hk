@@ -1,103 +1,52 @@
 [project]
-name         = "LegendaryOS"
-version      = "stable"
-description  = "Fedora-based OS"
-author       = "LegendaryOS-Linux-System"
-license      = "GPL-3.0"
-base_distro  = "fedora"
-base_version = 44
-arch         = "x86_64"
+-> name        => LegendaryOS
+-> tag         => stable
+-> version     => 2026.10
+-> description => LegendaryOS -- klasyczny (HackerOS / Debian testing) albo atomowy (Fedora Silverblue)
+-> targets     => [pc:amd64]
 
-[system]
-hostname         = "legendaryos"
-locale           = "pl_PL.UTF-8"
-language         = "pl_PL:pl:en_US:en"
-timezone         = "Europe/Warsaw"
-keyboard         = "pl"
-selinux          = "enforcing"
-firewall         = true
-services_enable  = ["sshd", "NetworkManager", "bluetooth", "cups", "fstrim.timer", "cosmic-greeter"]
-services_disable = ["ModemManager"]
+[release]
+-> base     => hackeros
+-> base-ref => official
+-> suite    => forky
 
-[desktop]
-environment     = "cosmic"
-display_server  = "wayland"
-auto_login      = false
-auto_login_user = ""
+[fedora]
+-> version     => 44
+-> filesystem  => ext4
+-> kernel-args => quiet splash mitigations=off
 
-[boot]
-bootloader  = "grub2"
-kernel_args = "quiet splash mitigations=off"
-splash      = true
-timeout     = 5
+[container]
+-> registry => ghcr.io/legendaryos-linux-system
+-> image    => legendaryos-fedora
+-> push     => false
 
-[anaconda]
-enabled            = true
-kickstart_embed    = true
-product_name       = "LegendaryOS"
-product_version    = "2026.06"
-webui              = true
-hide_shell         = false
-default_lang       = "pl_PL.UTF-8"
-default_keyboard   = "pl"
-default_timezone   = "Europe/Warsaw"
-root_password_lock = true
-default_user       = "user"
-default_user_groups = ["wheel", "audio", "video", "gamemode", "input", "render"]
+[branding]
+-> distro-name => LegendaryOS
+-> accent      => #6236B0
+-> background  => #120C1E
+-> home-url    => https://github.com/LegendaryOS-Linux-System
 
 [build]
-output_dir   = "build/output"
-cache_dir    = "build/cache"
-compression  = "zstd"
-iso_label    = "LegendaryOS-2026-06"
-iso_filename = "LegendaryOS-cosmic-fedora44.x86_64.iso"
-jobs         = 4
-clean_build  = false
-# System filesystem type używany przez bootc-image-builder
-# Opcje: ext4 | xfs | btrfs   (domyślnie: ext4)
-filesystem   = "ext4"
+-> iso-name     => LegendaryOS
+-> volume-label => LegendaryOS-2026-10
+-> publisher    => LegendaryOS-Linux-System
+-> bootappend   => boot=live components quiet splash mitigations=off
 
-[nvidia]
-enabled                = true
-open_driver            = false
-blacklist_nouveau      = true
-enable_kms             = true
-install_nvidia_settings = true
-install_vaapi          = true
-install_vulkan         = true
-install_cuda           = false
+[packages]
+-> desktop         => blue-environment
+-> display-manager => auto
 
-# ── Container / bootc ─────────────────────────────────────────────────────────
-# registry tryby:
-#   "custom" → ghcr.io/<user.toml github.name>/<image>
-#   "repo"   → ghcr.io/<container.repo>  (konkretne repozytorium GitHub)
-#   inne     → użyte dosłownie
-[container]
-enabled    = true
-registry   = "repo"
-# Konkretne repozytorium GitHub (org/repo) — używane gdy registry = "repo"
-# Obraz trafi do: ghcr.io/legendaryos-linux-system/legendaryos:1.0.0
-repo       = "LegendaryOS-Linux-System/legendaryos"
-image      = "legendaryos"
-tag        = "stable"
-push       = false
-sign_image = false
-bootc_mode = true
+[system]
+-> hostname         => legendaryos
+-> locale           => pl_PL.UTF-8
+-> timezone         => Europe/Warsaw
+-> keyboard         => pl
+-> services-enable  => [sshd, NetworkManager, bluetooth, cups, fstrim.timer]
+-> services-disable => [ModemManager]
+-> generate-identity => true
 
-# ── Branches — warianty OS z różnymi środowiskami graficznymi ─────────────────
-# Branch = ten sam obraz bazowy ale z innym DE
-# Budowane przez: legendaryos-builder build cloud --branch <name>
-# Każdy branch → osobny tag OCI: ghcr.io/.../legendaryos:1.0.0-kde itp.
-#
-# UWAGA: branches są zdefiniowane ale nie wdrożone w tym projekcie
-# Odkomentuj i dostosuj gdy będziesz gotowy na multi-DE buildy
+[base]
+-> import => [package-lists]
 
-# [[branch]]
-# name            = "kde"
-# display_name    = "LegendaryOS KDE Edition"
-# desktop         = "kde"
-# description     = "LegendaryOS z KDE Plasma"
-# tag             = "1.0.0-kde"
-# enabled         = false
-# extra_packages  = ["@kde-desktop-environment", "sddm", "plasma-discover"]
-# remove_packages = ["cosmic-session", "cosmic-settings", "cosmic-greeter"]
+[live]
+-> markers => auto
