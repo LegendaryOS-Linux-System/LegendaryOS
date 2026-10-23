@@ -1,1 +1,170 @@
+name: Build LegendaryOS
 
+# Ręcznie (Actions -> Build LegendaryOS -> Run workflow) wybierasz:
+#   * skąd wziąć legendaryos-builder: gotowa binarka z wydania albo budowa ze źródeł,
+#   * na czym bazuje LegendaryOS: HackerOS (Debian testing) albo Fedora Silverblue (atomowa),
+#   * środowisko graficzne (domyślnie z config.hk; np. blue-environment + display manager sdm).
+# Po wypchnięciu tagu `v*` budowa rusza z wartościami domyślnymi.
+
+on:
+  workflow_dispatch:
+    inputs:
+      builder_source:
+        description: "legendaryos-builder: gotowa binarka czy budowa ze źródeł?"
+        type: choice
+        options:
+          - release
+          - source
+        default: release
+      builder_version:
+        description: "Wersja buildera (tag wydania / gałąź). `latest` = najnowsza"
+        type: string
+        default: latest
+      base:
+        description: "Na czym bazuje LegendaryOS?"
+        type: choice
+        options:
+          - hackeros   # klasyczny LegendaryOS: HackerOS / Debian testing
+          - fedora     # LegendaryOS na Fedora Silverblue (atomowa)
+        default: hackeros
+      desktop:
+        description: "Środowisko graficzne (config = wartość z config.hk)"
+        type: choice
+        options:
+          - config
+          - blue-environment
+          - xfce
+          - gnome
+          - kde
+          - cosmic       # tylko baza fedora
+          - none
+        default: config
+      target:
+        description: "Filtr celów (puste = wszystkie z config.hk), np. pc albo pc:amd64"
+        type: string
+        default: ""
+      publish:
+        description: "Opublikuj artefakty jako wydanie GitHub?"
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # publikacja wydania
+
+env:
+  BUILDER_SOURCE: ${{ inputs.builder_source || 'release' }}
+  BUILDER_VERSION: ${{ inputs.builder_version || 'latest' }}
+  LO_BASE: ${{ inputs.base || 'hackeros' }}
+  LO_DESKTOP: ${{ inputs.desktop || 'config' }}
+  LO_TARGET: ${{ inputs.target || '' }}
+  LEGENDARYOS_TOKEN: ${{ secrets.LEGENDARYOS_TOKEN }}
+
+jobs:
+  # ── Baza HackerOS: Debian testing, live-build ────────────────────────────
+  build-hackeros:
+    name: LegendaryOS (HackerOS / Debian testing)
+    if: ${{ (inputs.base || 'hackeros') == 'hackeros' }}
+    runs-on: ubuntu-latest
+    container:
+      image: debian:testing
+      options: --privileged
+    steps:
+      - name: Zależności systemowe
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            git curl ca-certificates sudo xz-utils tar \
+            live-build debootstrap squashfs-tools xorriso mtools dosfstools e2fsprogs parted rsync \
+            grub-pc-bin grub-efi-amd64-bin grub-common efibootmgr \
+            qemu-user-static binfmt-support
+
+      - uses: actions/checkout@v4
+
+      - name: legendaryos-builder (${{ env.BUILDER_SOURCE }})
+        uses: ./.github/actions/get-builder
+        with:
+          source: ${{ env.BUILDER_SOURCE }}
+          version: ${{ env.BUILDER_VERSION }}
+
+      - name: Walidacja projektu
+        run: |
+          ARGS=(--base hackeros)
+          if [ "$LO_DESKTOP" != "config" ]; then ARGS+=(--desktop "$LO_DESKTOP"); fi
+          legendaryos-builder validate . "${ARGS[@]}"
+
+      - name: Budowa
+        run: |
+          ARGS=(--base hackeros)
+          if [ "$LO_DESKTOP" != "config" ]; then ARGS+=(--desktop "$LO_DESKTOP"); fi
+          if [ -n "$LO_TARGET" ]; then ARGS+=(--target "$LO_TARGET"); fi
+          legendaryos-builder build . "${ARGS[@]}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: legendaryos-hackeros
+          path: build/out/*
+          if-no-files-found: error
+
+      - name: Wydanie GitHub
+        if: ${{ inputs.publish || startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/out/*
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('legendaryos-hackeros-{0}', github.run_number) }}
+          name: LegendaryOS (HackerOS) ${{ github.run_number }}
+
+  # ── Baza Fedora: Silverblue (atomowa), podman + bootc-image-builder ──────
+  build-fedora:
+    name: LegendaryOS (Fedora Silverblue)
+    if: ${{ (inputs.base || 'hackeros') == 'fedora' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Zwolnij miejsce na dysku
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
+      - name: Zależności systemowe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends podman git curl ca-certificates xz-utils tar \
+            qemu-user-static binfmt-support
+
+      - uses: actions/checkout@v4
+
+      - name: legendaryos-builder (${{ env.BUILDER_SOURCE }})
+        uses: ./.github/actions/get-builder
+        with:
+          source: ${{ env.BUILDER_SOURCE }}
+          version: ${{ env.BUILDER_VERSION }}
+
+      - name: Walidacja projektu
+        run: |
+          ARGS=(--base fedora)
+          if [ "$LO_DESKTOP" != "config" ]; then ARGS+=(--desktop "$LO_DESKTOP"); fi
+          legendaryos-builder validate . "${ARGS[@]}"
+
+      - name: Budowa (podman build + bootc-image-builder)
+        run: |
+          ARGS=(--base fedora)
+          if [ "$LO_DESKTOP" != "config" ]; then ARGS+=(--desktop "$LO_DESKTOP"); fi
+          if [ -n "$LO_TARGET" ]; then ARGS+=(--target "$LO_TARGET"); fi
+          # obraz musi trafić do magazynu roota, skąd czyta go bootc-image-builder
+          sudo -E legendaryos-builder build . "${ARGS[@]}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: legendaryos-fedora
+          path: build/out/*
+          if-no-files-found: error
+
+      - name: Wydanie GitHub
+        if: ${{ inputs.publish || startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/out/*
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('legendaryos-fedora-{0}', github.run_number) }}
+          name: LegendaryOS (Fedora Silverblue) ${{ github.run_number }}
