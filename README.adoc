@@ -1,1 +1,68 @@
+= LegendaryOS
+:toc:
+:toclevels: 2
 
+*LegendaryOS* — system budowany narzędziem
+https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder[legendaryos-builder]
+(>= 0.8.0). Ten katalog to *projekt* w rozumieniu buildera: `config.hk`, `branding/`,
+`scripts/`, `files/`, `package-lists/`, `build.hl`, `user.hk`.
+
+== Dwie bazy
+
+[cols="1,2,2"]
+|===
+| |`hackeros` (domyślna) |`fedora`
+
+|System |Klasyczny LegendaryOS: HackerOS / Debian testing |LegendaryOS na *Fedora Silverblue* (atomowa)
+|Budowa |`live-build` (ISO live) |`podman build` → obraz OCI/bootc → `bootc-image-builder` (ISO instalacyjne)
+|Cele |komputery (`pc:amd64`, `pc:arm64`) i telefony (`phone:arm64:<urządzenie>`) |komputery
+|Wybór |`[release] -> base => hackeros` |`[release] -> base => fedora`
+|===
+
+Bazę można nadpisać flagą: `legendaryos-builder build . --base fedora`.
+
+== Środowisko graficzne
+
+`[packages] -> desktop`: `none | xfce | gnome | kde | cosmic` (tylko fedora) `| blue-environment`.
+
+*Blue Environment* (`blue-environment`) domyślnie używa display managera *sdm*
+(`[packages] -> display-manager => auto`). Dla telefonów (`[mobile] -> shell => blue-environment`,
+tylko baza hackeros) też.
+
+=== Sesja live i instalator Blue Environment
+
+Przy `desktop => blue-environment` (komputery) builder kładzie w `/etc/skel/.config/Blue-Environment/`:
+
+* `.live` — znacznik, po którym Blue Environment pokazuje *Blue Installer* zamiast pulpitu,
+* `.live-legendaryos` — znacznik LegendaryOS (zawsze),
+* `.live-fedora-legendaryos` — dodatkowo, gdy baza to Fedora.
+
+Na bazie hackeros zamiast Calamares instalowane są narzędzia Blue Installer (rsync, parted, dosfstools, e2fsprogs).
+Sterowanie: `[live] -> markers => auto | true | false`.
+
+== Budowa lokalnie
+
+[source,sh]
+----
+legendaryos-builder validate .
+sudo legendaryos-builder build .                                    # baza z config.hk
+sudo legendaryos-builder build . --base fedora --desktop blue-environment
+----
+
+== Budowa w GitHub Actions
+
+Workflow `Build LegendaryOS` (Actions → Run workflow) pyta o:
+
+* *builder_source* — `release`: pobiera gotową binarkę
+  `https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/.../legendaryos-builder`;
+  `source`: klonuje LegendaryOS-Builder, pobiera `bit` i `hsharp` (H#) z ich wydań i buduje builder ze źródeł,
+* *builder_version* — wersja buildera (`latest` albo tag),
+* *base* — `hackeros` albo `fedora`,
+* *desktop* — `config` (z `config.hk`), `blue-environment`, `xfce`, `gnome`, `kde`, `cosmic`, `none`,
+* *target* — opcjonalny filtr celów, *publish* — publikacja wydania.
+
+Opcjonalny sekret `LEGENDARYOS_TOKEN` trafia do buildera (pobieranie prywatnych zasobów).
+
+== Licencja
+
+GPL-3.0 — patrz link:LICENSE[`LICENSE`].
