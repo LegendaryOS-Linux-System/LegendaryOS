@@ -1,0 +1,126 @@
+name: "Pobierz Blue Environment"
+description: >
+  Wkłada do nakładki projektu (files/usr/bin/) gotowe binarki Blue Environment z wydań GitHub
+  oraz skrypty `blue` i `blue-dev`, a pakiety blue-environment* dopisuje do
+  `[packages] -> exclude` w config.hk (żeby builder nie szukał ich w repozytorium).
+  Komputery -> `blue-environment`, telefony -> `blue-environment-phones`.
+
+inputs:
+  mode:
+    description: "auto | desktop | phones | skip"
+    required: false
+    default: "auto"
+  version:
+    description: "Tag wydania Blue Environment. `latest` = najnowsza wersja."
+    required: false
+    default: "latest"
+  desktop:
+    description: "Wybrane środowisko z workflowu (config = wartość z config.hk)"
+    required: false
+    default: "config"
+  target:
+    description: "Filtr celów z workflowu (np. pc, phone:arm64:pinephone)"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Blue Environment (binarki + blue + blue-dev)
+      shell: bash
+      env:
+        BLUE_MODE: ${{ inputs.mode }}
+        BLUE_VERSION: ${{ inputs.version }}
+        WF_DESKTOP: ${{ inputs.desktop }}
+        WF_TARGET: ${{ inputs.target }}
+      run: |
+        set -euo pipefail
+
+        REPO="https://github.com/HackerOS-Linux-System/Blue-Environment"
+        RAW="https://raw.githubusercontent.com/HackerOS-Linux-System/Blue-Environment/main/scripts/tools"
+        CFG="config.hk"
+
+        # wartość klucza z sekcji config.hk (bez komentarzy ;;)
+        hk_get() {  # $1=sekcja $2=klucz
+          awk -v sec="[$1]" -v key="$2" '
+            /^[[:space:]]*;;/ { next }
+            /^\[/ { cur = $0; sub(/[[:space:]]+$/, "", cur); next }
+            cur == sec && $1 == "->" && $2 == key && $3 == "=>" {
+              v = $0; sub(/^[^=]*=>[[:space:]]*/, "", v); sub(/[[:space:]]+$/, "", v); print v; exit
+            }' "$CFG"
+        }
+
+        MODE="$BLUE_MODE"
+        if [ "$MODE" = "auto" ]; then
+          DESK="$WF_DESKTOP"
+          if [ "$DESK" = "config" ] || [ -z "$DESK" ]; then DESK="$(hk_get packages desktop)"; fi
+          if [ "$DESK" = "blue-environment" ]; then
+            MODE="desktop"
+          elif [ "${WF_TARGET#phone}" != "$WF_TARGET" ] && [ "$(hk_get mobile shell)" = "blue-environment" ]; then
+            MODE="phones"
+          else
+            MODE="skip"
+          fi
+        fi
+
+        if [ "$MODE" = "skip" ]; then
+          echo "Blue Environment: pomijam (tryb ${BLUE_MODE}; środowisko nie wymaga Blue Environment)."
+          exit 0
+        fi
+
+        case "$MODE" in
+          desktop) BIN="blue-environment" ;;
+          phones)  BIN="blue-environment-phones" ;;
+          *) echo "::error::Nieznany tryb Blue Environment: '$MODE' (auto | desktop | phones | skip)"; exit 1 ;;
+        esac
+
+        if [ "$BLUE_VERSION" = "latest" ] || [ -z "$BLUE_VERSION" ]; then
+          BIN_URL="$REPO/releases/latest/download/$BIN"
+        else
+          BIN_URL="$REPO/releases/download/$BLUE_VERSION/$BIN"
+        fi
+
+        DEST="files/usr/bin"
+        mkdir -p "$DEST"
+
+        echo "::group::Blue Environment ($MODE, ${BLUE_VERSION})"
+        echo "$BIN_URL"
+        curl -fsSL --retry 3 -o "$DEST/$BIN" "$BIN_URL"
+        # sanity check: to ma być binarka ELF, a nie strona błędu
+        if [ "$(head -c 4 "$DEST/$BIN" | od -An -c | tr -d ' ')" != '177ELF' ]; then
+          echo "::error::$BIN_URL nie zwrócił binarki ELF"; exit 1
+        fi
+        chmod 0755 "$DEST/$BIN"
+
+        for tool in blue blue-dev; do
+          echo "$RAW/$tool"
+          curl -fsSL --retry 3 -o "$DEST/$tool" "$RAW/$tool"
+          [ -s "$DEST/$tool" ] || { echo "::error::pusty plik $tool"; exit 1; }
+          chmod 0755 "$DEST/$tool"
+        done
+        ls -l "$DEST"
+        echo "::endgroup::"
+
+        # Pakiety blue-environment* nie pochodzą z repozytorium -- wyklucz je z list pakietów.
+        ADD="blue-environment, blue-environment-phones"
+        awk -v add="$ADD" '
+          function flush() { if (inpk && !done) { print "-> exclude => [" add "]"; done = 1 } }
+          /^[[:space:]]*;;/ { print; next }
+          /^\[/ {
+            flush()
+            hdr = $0; sub(/[[:space:]]+$/, "", hdr)
+            inpk = (hdr == "[packages]"); if (inpk) seen = 1
+            print; next
+          }
+          inpk && $1 == "->" && $2 == "exclude" && $3 == "=>" {
+            if ($0 ~ /\[[[:space:]]*\]/) { sub(/\[[[:space:]]*\]/, "[" add "]") }
+            else { sub(/\][[:space:]]*$/, ", " add "]") }
+            done = 1
+          }
+          { print }
+          END {
+            flush()
+            if (!seen) { print ""; print "[packages]"; print "-> exclude => [" add "]" }
+          }' "$CFG" > "$CFG.new"
+        mv "$CFG.new" "$CFG"
+        echo "config.hk -> [packages] exclude:"; grep -n "exclude" "$CFG" || true
