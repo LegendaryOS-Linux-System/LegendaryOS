@@ -1,0 +1,93 @@
+name: "Zbuduj H# ze źródeł"
+description: >
+  Klonuje https://github.com/HackerOS-Linux-System/H-Sharp.git, instaluje LLVM 21 + Rust
+  i buduje kompilator H# (`cargo build --release -p hsharp-cli`). Wynik: /usr/local/bin/hsharp,
+  dowiązanie /usr/local/bin/h# oraz biblioteka standardowa w /usr/lib/HackerOS/H#.
+
+inputs:
+  version:
+    description: "Gałąź/tag H-Sharp do sklonowania. `latest` = domyślna gałąź (najnowszy stan)."
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Zależności budowy (LLVM 21, Rust, kompilator C++)
+      shell: bash
+      run: |
+        set -euo pipefail
+        SUDO=""
+        if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
+        export DEBIAN_FRONTEND=noninteractive
+
+        echo "::group::Pakiety systemowe"
+        $SUDO apt-get update
+        $SUDO apt-get install -y --no-install-recommends \
+          git curl ca-certificates wget gnupg lsb-release software-properties-common \
+          build-essential g++ pkg-config libzstd-dev zlib1g-dev libxml2-dev libffi-dev
+        echo "::endgroup::"
+
+        echo "::group::LLVM 21"
+        if [ ! -x /usr/lib/llvm-21/bin/llvm-config ]; then
+          # 1) pakiety z samej dystrybucji (Debian testing ma już LLVM 21)
+          if ! $SUDO apt-get install -y --no-install-recommends llvm-21-dev libpolly-21-dev clang-21 2>/dev/null; then
+            # 2) oficjalny skrypt apt.llvm.org
+            wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh
+            chmod +x /tmp/llvm.sh
+            if ! $SUDO /tmp/llvm.sh 21; then
+              # 3) ręcznie dodane repozytorium apt.llvm.org (np. dla Debian testing/unstable)
+              wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | $SUDO tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
+              echo "deb http://apt.llvm.org/unstable/ llvm-toolchain-21 main" | $SUDO tee /etc/apt/sources.list.d/llvm-21.list >/dev/null
+              $SUDO apt-get update
+            fi
+            $SUDO apt-get install -y --no-install-recommends llvm-21-dev libpolly-21-dev clang-21
+          fi
+        fi
+        /usr/lib/llvm-21/bin/llvm-config --version
+        echo "::endgroup::"
+
+        echo "::group::Rust"
+        # H# wymaga Rust >= 1.85 (edycja 2021 + świeże zależności) -- bierzemy stable z rustup
+        if ! command -v cargo >/dev/null 2>&1 || ! rustc --version | grep -Eq ' 1\.(8[5-9]|9[0-9]|[1-9][0-9]{2})'; then
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+        fi
+        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+        echo "::endgroup::"
+
+    - name: Klonowanie H-Sharp
+      shell: bash
+      env:
+        HSHARP_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        SRC="${RUNNER_TEMP:-/tmp}/h-sharp-src"
+        rm -rf "$SRC"
+        if [ "$HSHARP_VERSION" = "latest" ] || [ -z "$HSHARP_VERSION" ]; then
+          git clone --depth 1 https://github.com/HackerOS-Linux-System/H-Sharp.git "$SRC"
+        else
+          git clone --depth 1 --branch "$HSHARP_VERSION" https://github.com/HackerOS-Linux-System/H-Sharp.git "$SRC"
+        fi
+        echo "HSHARP_SRC=$SRC" >> "$GITHUB_ENV"
+        git -C "$SRC" log -1 --format='H-Sharp @ %h  %s'
+
+    - name: Budowa H# ze źródeł (cargo build --release)
+      shell: bash
+      run: |
+        set -euo pipefail
+        export PATH="$HOME/.cargo/bin:$PATH"
+        SUDO=""
+        if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
+        cd "$HSHARP_SRC"
+        # inkwell `llvm21-1` => llvm-sys 211 => LLVM_SYS_211_PREFIX (starsze README podaje 210 -- ustawiamy oba)
+        export LLVM_SYS_211_PREFIX=/usr/lib/llvm-21
+        export LLVM_SYS_210_PREFIX=/usr/lib/llvm-21
+        cargo build --release -p hsharp-cli
+        ./target/release/hsharp --version
+
+        $SUDO install -m 0755 target/release/hsharp /usr/local/bin/hsharp
+        $SUDO ln -sf /usr/local/bin/hsharp "/usr/local/bin/h#"
+        # biblioteka standardowa H# (tak jak install-remove/Every-Linux/install.sh)
+        $SUDO mkdir -p "/usr/lib/HackerOS/H#"
+        $SUDO cp -a std/. "/usr/lib/HackerOS/H#/"
+        command -v "h#"
