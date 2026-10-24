@@ -88,6 +88,9 @@ runs:
         $SUDO install -m 0755 target/release/hsharp /usr/local/bin/hsharp
         $SUDO ln -sf /usr/local/bin/hsharp "/usr/local/bin/h#"
         # biblioteka standardowa H# (tak jak install-remove/Every-Linux/install.sh)
-        $SUDO mkdir -p "/usr/lib/HackerOS/H#"
-        $SUDO cp -a std/. "/usr/lib/HackerOS/H#/"
+        # kompilator szuka modułów w /usr/lib/HackerOS/H#/std/<moduł>.h#
+        $SUDO rm -rf "/usr/lib/HackerOS/H#/std"
+        $SUDO mkdir -p "/usr/lib/HackerOS/H#/std"
+        $SUDO cp -a std/. "/usr/lib/HackerOS/H#/std/"
+        test -f "/usr/lib/HackerOS/H#/std/fmt.h#" || { echo "::error::brak std/fmt.h# po instalacji"; exit 1; }
         command -v "h#"
