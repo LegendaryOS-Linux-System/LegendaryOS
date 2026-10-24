@@ -55,11 +55,31 @@ Workflow `Build LegendaryOS` (Actions → Run workflow) pyta o:
 
 * *builder_source* — `release`: pobiera gotową binarkę
   `https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/releases/.../legendaryos-builder`;
-  `source`: klonuje LegendaryOS-Builder, pobiera `bit` i `hsharp` (H#) z ich wydań i buduje builder ze źródeł,
+  `source`: klonuje LegendaryOS-Builder, pobiera `bit`, zdobywa kompilator H# (patrz niżej) i buduje builder ze źródeł,
 * *builder_version* — wersja buildera (`latest` albo tag),
+* *hsharp_source* — (tylko przy `builder_source = source`) skąd wziąć kompilator H#:
+  `release` — gotowa binarka `hsharp` z wydania,
+  `source` — klonuje `https://github.com/HackerOS-Linux-System/H-Sharp.git` i buduje ze źródeł
+  (`cargo build --release -p hsharp-cli`, wymaga LLVM 21 + Rust — workflow instaluje je sam; instaluje też `std` do `/usr/lib/HackerOS/H#`),
+* *hsharp_version* — wersja H# (`latest` albo tag/gałąź),
 * *base* — `hackeros` albo `fedora`,
 * *desktop* — `config` (z `config.hk`), `blue-environment`, `xfce`, `gnome`, `kde`, `cosmic`, `none`,
+* *blue_environment* — jak dostarczyć Blue Environment: `auto` (gdy środowisko to `blue-environment`; dla celów `phone*` wariant telefoniczny),
+  `desktop` (binarka `blue-environment`), `phones` (binarka `blue-environment-phones`), `skip` (pakiet z repozytorium),
+* *blue_version* — wersja Blue Environment (`latest` albo tag wydania),
 * *target* — opcjonalny filtr celów, *publish* — publikacja wydania.
+
+=== Blue Environment w obrazie
+
+Przy włączonym Blue Environment akcja `.github/actions/get-blue-environment` przed budową:
+
+* pobiera `https://github.com/HackerOS-Linux-System/Blue-Environment/releases/latest/download/blue-environment`
+  (telefony: `.../blue-environment-phones`) do `files/usr/bin/`,
+* pobiera skrypty `blue` i `blue-dev` (`scripts/tools/` z repozytorium Blue-Environment) do `files/usr/bin/`,
+* dopisuje `blue-environment` i `blue-environment-phones` do `[packages] -> exclude` w `config.hk` (na czas budowy),
+  żeby builder nie szukał ich w repozytorium pakietów.
+
+Zawartość `files/` trafia 1:1 do obrazu, więc w systemie lądują jako `/usr/bin/blue-environment` (lub `-phones`), `/usr/bin/blue` i `/usr/bin/blue-dev`.
 
 Opcjonalny sekret `LEGENDARYOS_TOKEN` trafia do buildera (pobieranie prywatnych zasobów).
 
