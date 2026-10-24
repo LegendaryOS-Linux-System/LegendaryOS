@@ -1,7 +1,9 @@
 name: "Pobierz legendaryos-builder"
 description: >
   Instaluje legendaryos-builder w /usr/local/bin: albo pobiera gotową binarkę z wydania
-  (release), albo buduje ją ze źródeł (source) -- wtedy pobiera też bit i hsharp (H#).
+  (release), albo buduje ją ze źródeł (source) -- wtedy potrzebuje bit i kompilatora H#,
+  który można pobrać jako gotową binarkę (hsharp_source=release) albo zbudować ze źródeł
+  (hsharp_source=source: klonuje HackerOS-Linux-System/H-Sharp i buduje cargo + LLVM 21).
 
 inputs:
   source:
@@ -13,14 +15,31 @@ inputs:
     required: false
     default: "latest"
 
+  hsharp_source:
+    description: "Tylko gdy source=source: release = gotowa binarka H#, source = budowa H# ze źródeł (klon H-Sharp)"
+    required: false
+    default: "release"
+  hsharp_version:
+    description: "Wersja H# (tag wydania / gałąź do sklonowania). `latest` = najnowsza."
+    required: false
+    default: "latest"
+
 runs:
   using: "composite"
   steps:
+    - name: Zbuduj H# ze źródeł (klon H-Sharp)
+      if: ${{ inputs.source == 'source' && inputs.hsharp_source == 'source' }}
+      uses: ./.github/actions/build-hsharp
+      with:
+        version: ${{ inputs.hsharp_version }}
+
     - name: Zainstaluj legendaryos-builder
       shell: bash
       env:
         BUILDER_SOURCE: ${{ inputs.source }}
         BUILDER_VERSION: ${{ inputs.version }}
+        HSHARP_SOURCE: ${{ inputs.hsharp_source }}
+        HSHARP_VERSION: ${{ inputs.hsharp_version }}
       run: |
         set -euo pipefail
 
@@ -53,16 +72,22 @@ runs:
           $SUDO install -m 0755 /tmp/legendaryos-builder /usr/local/bin/legendaryos-builder
           echo "::endgroup::"
         elif [ "$BUILDER_SOURCE" = "source" ]; then
-          echo "::group::Pobieranie bit i hsharp"
+          echo "::group::Pobieranie bit i H# (${HSHARP_SOURCE})"
           # menedżer pakietów
           curl -fsSL --retry 3 -o /tmp/bit \
             "$(asset_url "https://github.com/HackerOS-Linux-System/bit" latest bit)"
           $SUDO install -m 0755 /tmp/bit /usr/local/bin/bit
-          # kompilator H# (binarka `hsharp`; `h#` to ta sama binarka pod drugą nazwą)
-          curl -fsSL --retry 3 -o /tmp/hsharp \
-            "$(asset_url "https://github.com/HackerOS-Linux-System/H-Sharp" latest hsharp)"
-          $SUDO install -m 0755 /tmp/hsharp /usr/local/bin/hsharp
-          $SUDO ln -sf /usr/local/bin/hsharp "/usr/local/bin/h#"
+          if [ "$HSHARP_SOURCE" = "source" ]; then
+            # H# został już zbudowany ze źródeł przez ./.github/actions/build-hsharp
+            command -v "h#" >/dev/null || { echo "::error::brak h# po budowie ze źródeł"; exit 1; }
+            echo "H#: zbudowany ze źródeł -> $(command -v 'h#')"
+          else
+            # kompilator H# (binarka `hsharp`; `h#` to ta sama binarka pod drugą nazwą)
+            curl -fsSL --retry 3 -o /tmp/hsharp \
+              "$(asset_url "https://github.com/HackerOS-Linux-System/H-Sharp" "${HSHARP_VERSION:-latest}" hsharp)"
+            $SUDO install -m 0755 /tmp/hsharp /usr/local/bin/hsharp
+            $SUDO ln -sf /usr/local/bin/hsharp "/usr/local/bin/h#"
+          fi
           echo "::endgroup::"
 
           echo "::group::Klonowanie LegendaryOS-Builder"
