@@ -24,7 +24,7 @@ runs:
         echo "::group::Pakiety systemowe"
         $SUDO apt-get update
         $SUDO apt-get install -y --no-install-recommends \
-          git curl ca-certificates wget gnupg lsb-release software-properties-common \
+          git curl ca-certificates wget gnupg lsb-release \
           build-essential g++ pkg-config libzstd-dev zlib1g-dev libxml2-dev libffi-dev
         echo "::endgroup::"
 
