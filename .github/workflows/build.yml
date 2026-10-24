@@ -2,6 +2,9 @@ name: Build LegendaryOS
 
 # Ręcznie (Actions -> Build LegendaryOS -> Run workflow) wybierasz:
 #   * skąd wziąć legendaryos-builder: gotowa binarka z wydania albo budowa ze źródeł,
+#   * (przy budowie buildera ze źródeł) skąd wziąć kompilator H#: gotowa binarka albo
+#     klon https://github.com/HackerOS-Linux-System/H-Sharp.git i budowa ze źródeł,
+#   * Blue Environment: binarka z wydania (komputery / telefony) + skrypty blue i blue-dev w /usr/bin,
 #   * na czym bazuje LegendaryOS: HackerOS (Debian testing) albo Fedora Silverblue (atomowa),
 #   * środowisko graficzne (domyślnie z config.hk; np. blue-environment + display manager sdm).
 # Po wypchnięciu tagu `v*` budowa rusza z wartościami domyślnymi.
@@ -18,6 +21,30 @@ on:
         default: release
       builder_version:
         description: "Wersja buildera (tag wydania / gałąź). `latest` = najnowsza"
+        type: string
+        default: latest
+      hsharp_source:
+        description: "H# (tylko gdy builder_source=source): gotowa binarka czy budowa ze źródeł (klon H-Sharp)?"
+        type: choice
+        options:
+          - release
+          - source
+        default: release
+      hsharp_version:
+        description: "Wersja H# (tag wydania / gałąź). `latest` = najnowsza"
+        type: string
+        default: latest
+      blue_environment:
+        description: "Blue Environment z wydania GitHub: auto (gdy wybrano blue-environment) | desktop | phones | skip"
+        type: choice
+        options:
+          - auto       # pobierz, jeśli środowisko = blue-environment (komputery; telefony gdy target phone*)
+          - desktop    # binarka blue-environment (komputery)
+          - phones     # binarka blue-environment-phones (telefony)
+          - skip       # nie pobieraj (pakiet z repozytorium)
+        default: auto
+      blue_version:
+        description: "Wersja Blue Environment (tag wydania). `latest` = najnowsza"
         type: string
         default: latest
       base:
@@ -57,6 +84,10 @@ permissions:
 env:
   BUILDER_SOURCE: ${{ inputs.builder_source || 'release' }}
   BUILDER_VERSION: ${{ inputs.builder_version || 'latest' }}
+  HSHARP_SOURCE: ${{ inputs.hsharp_source || 'release' }}
+  HSHARP_VERSION: ${{ inputs.hsharp_version || 'latest' }}
+  BLUE_MODE: ${{ inputs.blue_environment || 'auto' }}
+  BLUE_VERSION: ${{ inputs.blue_version || 'latest' }}
   LO_BASE: ${{ inputs.base || 'hackeros' }}
   LO_DESKTOP: ${{ inputs.desktop || 'config' }}
   LO_TARGET: ${{ inputs.target || '' }}
@@ -88,6 +119,16 @@ jobs:
         with:
           source: ${{ env.BUILDER_SOURCE }}
           version: ${{ env.BUILDER_VERSION }}
+          hsharp_source: ${{ env.HSHARP_SOURCE }}
+          hsharp_version: ${{ env.HSHARP_VERSION }}
+
+      - name: Blue Environment (binarka + blue + blue-dev → /usr/bin)
+        uses: ./.github/actions/get-blue-environment
+        with:
+          mode: ${{ env.BLUE_MODE }}
+          version: ${{ env.BLUE_VERSION }}
+          desktop: ${{ env.LO_DESKTOP }}
+          target: ${{ env.LO_TARGET }}
 
       - name: Walidacja projektu
         run: |
@@ -140,6 +181,16 @@ jobs:
         with:
           source: ${{ env.BUILDER_SOURCE }}
           version: ${{ env.BUILDER_VERSION }}
+          hsharp_source: ${{ env.HSHARP_SOURCE }}
+          hsharp_version: ${{ env.HSHARP_VERSION }}
+
+      - name: Blue Environment (binarka + blue + blue-dev → /usr/bin)
+        uses: ./.github/actions/get-blue-environment
+        with:
+          mode: ${{ env.BLUE_MODE }}
+          version: ${{ env.BLUE_VERSION }}
+          desktop: ${{ env.LO_DESKTOP }}
+          target: ${{ env.LO_TARGET }}
 
       - name: Walidacja projektu
         run: |
