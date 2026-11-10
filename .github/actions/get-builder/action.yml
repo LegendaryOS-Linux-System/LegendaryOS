@@ -3,7 +3,7 @@ description: >
   Instaluje legendaryos-builder w /usr/local/bin: albo pobiera gotową binarkę z wydania
   (release), albo buduje ją ze źródeł (source) -- wtedy potrzebuje bit i kompilatora H#,
   który można pobrać jako gotową binarkę (hsharp_source=release) albo zbudować ze źródeł
-  (hsharp_source=source: klonuje HackerOS-Linux-System/H-Sharp i buduje cargo + LLVM 21).
+  (hsharp_source=source: klonuje HackerOS-Linux-System/H-Sharp i buduje go przez bit: stage0 -> stage1 -> stage2, tylko g++, bez cargo/LLVM).
 
 inputs:
   source:
