@@ -1,52 +1,40 @@
-[project]
--> name        => LegendaryOS
--> tag         => stable
--> version     => 2026.10
--> description => LegendaryOS -- klasyczny (HackerOS / Debian testing) albo atomowy (Fedora Silverblue)
--> targets     => [pc:amd64]
-
-[release]
--> base     => hackeros
--> base-ref => official
--> suite    => forky
-
-[fedora]
--> version     => 44
--> filesystem  => ext4
--> kernel-args => quiet splash mitigations=off
-
-[container]
--> registry => ghcr.io/legendaryos-linux-system
--> image    => legendaryos-fedora
--> push     => false
-
-[branding]
--> distro-name => LegendaryOS
--> accent      => #6236B0
--> background  => #120C1E
--> home-url    => https://github.com/LegendaryOS-Linux-System
-
-[build]
--> iso-name     => LegendaryOS
--> volume-label => LegendaryOS-2026-10
--> publisher    => LegendaryOS-Linux-System
--> bootappend   => boot=live components quiet splash mitigations=off
-
-[packages]
--> desktop         => blue-environment
--> display-manager => auto
-
-[system]
--> hostname         => legendaryos
--> locale           => pl_PL.UTF-8
--> timezone         => Europe/Warsaw
--> keyboard         => pl
--> services-enable  => [sshd, NetworkManager, bluetooth, cups, fstrim.timer]
--> services-disable => [ModemManager]
--> generate-identity => true
+[distro]
+-> name    => LegendaryOS
+-> id      => legendaryos
+-> version => 0.1.0
+-> arch    => x86_64
+-> channel => rolling
 
 [base]
--> import => [package-lists]
+! LegendaryOS bazuje na Fedorze; pakiety instalowane przez dnf --installroot
+-> distro  => fedora
+-> release => 43
+-> dnf     => dnf5
 
-[live]
--> markers => auto
+[init]
+! zamiast systemd — zenitd (Zenit Linux). Skrypt instalacyjny pobierany przy budowie.
+-> service_manager        => zenitd
+-> zenitd_repo            => https://github.com/Zenit-Linux/zenitd
+-> zenitd_install_script  => https://raw.githubusercontent.com/Zenit-Linux/zenitd/main/scripts/install.sh
+
+[desktop]
+-> environment      => blue-environment
+! sddm dziś, w przyszłości HDM
+-> display_manager  => sddm
+
+[layout]
+! niezmienne korzenie obrazu (patrz docs/PLAN.md)
+-> immutable => [/system, /packages, /tools]
+-> mutable   => [/state, /home]
+
+[boot]
+-> kernel_args => quiet rhgb
+
+[targets]
+-> formats => [iso, oci]
+
+[image]
+-> oci_name => legendaryos
+
+[tools]
+-> catalog => files/usr/share/legendaryos/tools.hk
