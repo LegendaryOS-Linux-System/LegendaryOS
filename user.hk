@@ -1,6 +1,5 @@
-[account]
--> type => organisation
--> name => LegendaryOS-Linux-System
-
-[auth]
--> token =>
+[user]
+-> name         => legendaryos
+-> organization => LegendaryOS-Linux-System
+-> registry     => ghcr.io
+-> token        => env:GITHUB_TOKEN
