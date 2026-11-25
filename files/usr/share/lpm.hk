@@ -1,0 +1,10 @@
+[lpm]
+-> releasever       => 45
+-> arch             => x86_64
+-> base-image       => ghcr.io/legendaryos-linux-system/legendaryos:latest
+-> keep-generations => 3
+-> repos            => /system/share/legendaryos/repos.hk
+-> policy           => /system/share/legendaryos/compat.hk
+
+[tools]
+-> catalog => /system/share/legendaryos/tools.hk
