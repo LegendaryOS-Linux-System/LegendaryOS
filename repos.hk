@@ -1,0 +1,16 @@
+[repos]
+-> fedora
+--> baseurl  => https://dl.fedoraproject.org/pub/fedora/linux/releases/$releasever/Everything/$basearch/os
+--> gpgcheck => true
+--> gpgkey   => file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-$releasever-primary
+-> updates
+--> baseurl  => https://dl.fedoraproject.org/pub/fedora/linux/updates/$releasever/Everything/$basearch
+--> gpgcheck => true
+--> gpgkey   => file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-$releasever-primary
+! Copr LegendaryOS: elogind (logind bez systemd — ryzyko #1, zob. docs/BUILDING.md) i pakiety własne.
+! Włącz, gdy Copr będzie zawierał elogind; do tego czasu wymaga to budowy ze źródeł (/tools).
+-> copr-legendaryos
+--> baseurl  => https://download.copr.fedorainfracloud.org/results/legendaryos/legendaryos/fedora-$releasever-$basearch
+--> enabled  => false
+--> gpgcheck => true
+--> gpgkey   => https://download.copr.fedorainfracloud.org/results/legendaryos/legendaryos/pubkey.gpg
