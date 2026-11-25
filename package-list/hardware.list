@@ -1,0 +1,7 @@
+# Sterowniki. NVIDIA: sterownik żyje w /system (obraz), pakiety z /packages go NIGDY nie dublują.
+# Odkomentuj, gdy obraz ma zawierać sterownik własnościowy (wymaga RPM Fusion):
+# akmod-nvidia
+# xorg-x11-drv-nvidia-cuda
+linux-firmware
+alsa-firmware
+bluez
