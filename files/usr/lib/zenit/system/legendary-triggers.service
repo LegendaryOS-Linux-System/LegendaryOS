@@ -1,0 +1,13 @@
+[Unit]
+Description=LegendaryOS: wyzwalacze po zmianie wdrożenia (sysusers, hooki z compat.hk)
+After=legendary-state.service
+Before=basic.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Zamiennik skryptletów RPM, których lpm nie uruchamia; wykonuje się tylko, gdy zmienił się installed.xml.
+ExecStart=/usr/bin/lpm triggers
+
+[Install]
+WantedBy=basic.target
