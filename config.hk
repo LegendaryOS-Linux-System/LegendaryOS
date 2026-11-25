@@ -6,10 +6,16 @@
 -> channel => rolling
 
 [base]
-! LegendaryOS bazuje na Fedorze; pakiety instalowane przez dnf --installroot
+! LegendaryOS bazuje na Fedorze (pakiety RPM). Bez dnf — ani przy budowie, ani w gotowym systemie.
 -> distro  => fedora
 -> release => 43
--> dnf     => dnf5
+
+[packages]
+! Przy budowie rootfs: lepm (../lepm) = rpm-md -> satsolv -> pobranie -> rozpakowanie. W systemie: lpm.
+! Oba używają tych samych plików (repos.hk, compat.hk), które jadą też w obrazie (/system/share/legendaryos/).
+-> manager => lepm
+-> repos   => repos.hk
+-> policy  => compat.hk
 
 [init]
 ! zamiast systemd — zenitd (Zenit Linux). Skrypt instalacyjny pobierany przy budowie.
