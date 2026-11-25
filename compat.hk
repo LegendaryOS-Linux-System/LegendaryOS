@@ -1,0 +1,18 @@
+[stub]
+! Atrapa spełnia Requires: systemd (także wersjonowane), nie instalując żadnych plików.
+-> systemd
+--> provides => [systemd, systemd-units, systemd-sysv]
+--> version  => from-repo:systemd
+! Docelowo (po zbudowaniu elogind w Copr/źródłach): atrapa logind NIE jest potrzebna — elogind ma własne Provides.
+
+[exclude]
+! Nigdy nie instaluj: PID 1 i demony systemd zastępowane przez zenitd / NetworkManager / chronyd.
+-> packages => [systemd, systemd-sysv, systemd-resolved, systemd-networkd, systemd-oomd-defaults, systemd-timesyncd]
+
+[hooks]
+! Zamiennik skryptletów RPM (polecenia jednowyrazowe; depmod/dracut: scripts/40-initramfs.sh).
+-> run => [ldconfig, update-ca-trust, fc-cache]
+
+[solver]
+! odpowiednik install_weak_deps=False
+-> weak-deps => false
