@@ -1,4 +1,6 @@
 # LegendaryOS — źródła dystrybucji
-`config.hk` (główna konfiguracja) · `user.hk` (organizacja/token jako `env:`) · `branding/` (banner.png, logo.png, logo-bg.png, logo-bg.jpg, notext-bg.png — grafika zastępcza do podmiany) ·
+`config.hk` (główna konfiguracja) · `repos.hk` (repozytoria rpm-md) · `compat.hk` (polityka: atrapy systemd, wykluczenia, hooki) · `user.hk` (organizacja/token jako `env:`) · `branding/` (banner.png, logo.png, logo-bg.png, logo-bg.jpg, notext-bg.png — grafika zastępcza do podmiany) ·
 `files/` (nakładka po instalacji pakietów, ścieżki w stylu Fedory: `usr/…`, `etc/…`; builder zamienia układ później) · `package-list/*.list` · `scripts/` (hooki, kolejność alfabetyczna).
 Budowa: `legendaryos-builder validate . && legendaryos-builder build . --target both` (patrz LegendaryOS-Builder/README.md).
+
+Pakiety: **bez dnf** — rootfs składa `lepm` (../lepm), w systemie działa `lpm` (../lpm); oba na bibliotece `lrpm` (satsolv).
