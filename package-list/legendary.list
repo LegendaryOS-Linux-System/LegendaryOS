@@ -1,0 +1,10 @@
+rpm
+bsdtar
+fedora-gpg-keys
+git
+curl
+squashfs-tools
+squashfuse
+composefs
+cryptsetup
+podman
