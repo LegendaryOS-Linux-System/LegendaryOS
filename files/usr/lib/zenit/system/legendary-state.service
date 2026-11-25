@@ -1,0 +1,15 @@
+[Unit]
+Description=LegendaryOS: przygotowanie /state (układ, machine-id)
+DefaultDependencies=no
+After=local-fs.target
+Before=basic.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# FastTree jako BIBLIOTEKA (lpm woła ft::api::layout_ensure) — w obrazie nie ma programu `fasttree`.
+ExecStart=/usr/bin/lpm layout-init
+ExecStart=-/usr/bin/lpm layout-check
+
+[Install]
+WantedBy=basic.target
