@@ -1,0 +1,19 @@
+[edition]
+-> id              => blue
+-> name            => LegendaryOS Blue
+-> summary         => Blue Environment (Wayland) z SDDM
+-> desktop         => blue-environment
+-> display_manager => sddm
+-> session         => blue-environment.desktop
+-> installer       => gui
+-> graphical       => true
+-> default_target  => graphical
+! Etykieta ISO (volid, ≤32 znaki, bez spacji)
+-> iso_label       => LOS_BLUE
+! Wspólne listy z package-list/ (base, hardware, legendary są zawsze); pakiety edycji: editions/blue/package-list/*.list
+-> lists           => [graphical]
+-> kernel_args     => quiet rhgb
+
+[tools]
+! Narzędzia z tools.hk, których ta edycja NIE pobiera (id z katalogu), np. [hco]
+-> exclude => []
