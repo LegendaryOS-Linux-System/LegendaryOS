@@ -1,0 +1,19 @@
+[edition]
+-> id              => gnome
+-> name            => LegendaryOS Gnome
+-> summary         => GNOME (Wayland) z GDM
+-> desktop         => gnome
+-> display_manager => gdm
+-> session         => gnome.desktop
+-> installer       => gui
+-> graphical       => true
+-> default_target  => graphical
+! Etykieta ISO (volid, ≤32 znaki, bez spacji)
+-> iso_label       => LOS_GNOME
+! Wspólne listy z package-list/ (base, hardware, legendary są zawsze); pakiety edycji: editions/gnome/package-list/*.list
+-> lists           => [graphical]
+-> kernel_args     => quiet rhgb
+
+[tools]
+! Narzędzia z tools.hk, których ta edycja NIE pobiera (id z katalogu), np. [hco]
+-> exclude => []
