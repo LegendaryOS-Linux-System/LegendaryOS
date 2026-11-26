@@ -1,0 +1,11 @@
+[Unit]
+Description=elogind (logind bez systemd: sesje, seat, suspend) — wymagany przez menedżery logowania
+After=dbus.service
+Requires=dbus.service
+[Service]
+Type=simple
+# Ścieżka zależy od pakietu elogind (Copr LegendaryOS); `-` = brak pliku nie zatrzymuje startu.
+ExecStart=-/usr/lib/elogind/elogind
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
