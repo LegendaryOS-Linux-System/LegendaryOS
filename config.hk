@@ -1,7 +1,7 @@
 [distro]
 -> name    => LegendaryOS
 -> id      => legendaryos
--> version => 0.1.0
+-> version => 0.2.0
 -> arch    => x86_64
 -> channel => rolling
 
@@ -23,24 +23,33 @@
 -> zenitd_repo            => https://github.com/Zenit-Linux/zenitd
 -> zenitd_install_script  => https://raw.githubusercontent.com/Zenit-Linux/zenitd/main/scripts/install.sh
 
-[desktop]
--> environment      => blue-environment
-! sddm dziś, w przyszłości HDM
--> display_manager  => sddm
-
 [layout]
 ! niezmienne korzenie obrazu (patrz docs/PLAN.md)
 -> immutable => [/system, /packages, /tools]
 -> mutable   => [/state, /home]
 
+[editions]
+! Edycje (editions/<id>/edition.hk). `legendaryos-builder build . --edition all` buduje wszystkie po kolei.
+-> list    => [plasma, xfce, gnome, cosmic, blue, server]
+-> default => plasma
+
 [boot]
+! domyślne; edycja może nadpisać w edition.hk (kernel_args)
 -> kernel_args => quiet rhgb
 
 [targets]
 -> formats => [iso, oci]
 
 [image]
+! Nazwa OCI i ISO powstaje jako <oci_name>-<edycja>, np. legendaryos-plasma
 -> oci_name => legendaryos
 
 [tools]
--> catalog => files/usr/share/legendaryos/tools.hk
+! /tools = jeden obraz squashfs (tools.sqfs) ze wszystkimi narzędziami z katalogu (wersje: manifest.hk / Bit.hk)
+-> catalog => tools.hk
+-> image   => tools.sqfs
+
+[zsharp]
+! Instalacja Z# (kompilator języka Zenit Linux) skryptem hlpp — hlpp jest pobierany jako narzędzie z katalogu.
+-> script  => https://raw.githubusercontent.com/Zenit-Linux/Z-Sharp/main/scripts/LegendaryOS/install.hlpp
+-> required => false
