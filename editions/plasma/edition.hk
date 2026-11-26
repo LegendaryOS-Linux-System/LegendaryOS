@@ -1,0 +1,19 @@
+[edition]
+-> id              => plasma
+-> name            => LegendaryOS Plasma
+-> summary         => KDE Plasma 6 (Wayland) z SDDM
+-> desktop         => plasma
+-> display_manager => sddm
+-> session         => plasma.desktop
+-> installer       => gui
+-> graphical       => true
+-> default_target  => graphical
+! Etykieta ISO (volid, ≤32 znaki, bez spacji)
+-> iso_label       => LOS_PLASMA
+! Wspólne listy z package-list/ (base, hardware, legendary są zawsze); pakiety edycji: editions/plasma/package-list/*.list
+-> lists           => [graphical]
+-> kernel_args     => quiet rhgb
+
+[tools]
+! Narzędzia z tools.hk, których ta edycja NIE pobiera (id z katalogu), np. [hco]
+-> exclude => []
