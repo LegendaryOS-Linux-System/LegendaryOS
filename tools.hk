@@ -1,0 +1,127 @@
+[sources]
+-> manifest_url => https://raw.githubusercontent.com/HackerOS-Linux-System/HackerOS/main/packages/manifest.hk
+
+! ── HackerOS: zawsze ─────────────────────────────────────────────────────────
+[tools]
+-> bit
+--> repo     => HackerOS-Linux-System/bit
+--> asset    => bit
+--> version  => manifest:bit
+--> editions => [all]
+-> hackerc
+--> repo     => HackerOS-Linux-System/HackerScript
+--> asset    => hackerc
+--> version  => manifest:HackerScript
+--> editions => [all]
+-> hsharp
+--> repo     => HackerOS-Linux-System/H-Sharp
+--> asset    => hsharp
+--> as       => h#
+--> version  => manifest:H#
+--> editions => [all]
+-> ngt
+--> repo     => HackerOS-Linux-System/ngt
+--> asset    => ngt
+--> version  => manifest:ngt
+--> editions => [all]
+-> hco
+--> repo     => HackerOS-Linux-System/HackerOS-Containers
+--> asset    => hco
+--> version  => manifest:hco
+--> editions => [all]
+-> getit
+--> repo     => HackerOS-Linux-System/getit
+--> asset    => getit
+--> version  => manifest:getit
+--> editions => [all]
+-> hedit
+--> repo     => HackerOS-Linux-System/hedit
+--> asset    => hedit
+--> version  => manifest:hedit
+--> editions => [all]
+
+! ── HackerOS: aplikacje desktopowe (edycje graficzne; Server ich nie dostaje) ──
+-> hacker-launcher
+--> repo     => HackerOS-Linux-System/Hacker_Launcher
+--> asset    => Hacker_Launcher
+--> version  => manifest:Hacker Launcher
+--> kind     => desktop
+--> title    => Hacker Launcher
+--> editions => [plasma, xfce, gnome, cosmic, blue]
+-> hackeros-educator
+--> repo     => HackerOS-Linux-System/HackerOS-Educator
+--> asset    => HackerOS-Educator
+--> version  => manifest:HackerOS Educator
+--> kind     => desktop
+--> title    => HackerOS Educator
+--> editions => [plasma, xfce, gnome, cosmic, blue]
+
+! ── Zenit Linux: zenitd (init zamiast systemd) ───────────────────────────────
+! Do /system trafia przez krok `zenitd` buildera (PID 1 musi istnieć przed zamontowaniem /tools); tu — kopia w obrazie narzędzi.
+! Wydania zenitd mogą jeszcze nie istnieć: wtedy builder użyje binarki zbudowanej przez install.sh (krok zenitd).
+-> zenitd
+--> repo     => Zenit-Linux/zenitd
+--> asset    => zenitd
+--> version  => latest
+--> required => false
+--> system   => true
+--> editions => [all]
+
+! ── LegendaryOS: zawsze ──────────────────────────────────────────────────────
+! hlpp = Hacker Lang++ (potrzebny też do instalacji Z#, zob. config.hk [zsharp])
+-> hlpp
+--> repo     => LegendaryOS-Linux-System/Hacker-Lang-Plus-Plus
+--> asset    => hlpp
+--> version  => bithk
+--> editions => [all]
+-> legendaryos-builder
+--> repo     => LegendaryOS-Linux-System/LegendaryOS-Builder
+--> asset    => legendaryos-builder
+--> version  => bithk
+--> editions => [all]
+-> legendary
+--> repo     => LegendaryOS-Linux-System/legendary
+--> asset    => legendary
+--> version  => bithk
+--> editions => [all]
+-> nula
+--> repo     => LegendaryOS-Linux-System/nula
+--> asset    => nula
+--> version  => bithk
+--> editions => [all]
+! lpm — jedno z najważniejszych: kopia w /system/bin (legendary-state/legendary-tools używają go przed zamontowaniem /tools)
+-> lpm
+--> repo     => LegendaryOS-Linux-System/lpm
+--> asset    => lpm
+--> version  => bithk
+--> system   => true
+--> editions => [all]
+-> lepm
+--> repo     => LegendaryOS-Linux-System/lepm
+--> asset    => lepm
+--> version  => bithk
+--> editions => [all]
+
+! ── Instalatory ──────────────────────────────────────────────────────────────
+! Wersja z Bit.hk repozytorium LegendaryOS-Installer (oba pliki z jednego wydania).
+-> legendaryos-installer
+--> repo     => LegendaryOS-Linux-System/LegendaryOS-Installer
+--> asset    => legendaryos-installer
+--> version  => bithk
+--> kind     => installer
+--> title    => Zainstaluj LegendaryOS
+--> editions => [plasma, xfce, gnome, cosmic, blue]
+-> legendaryos-installer-tui
+--> repo     => LegendaryOS-Linux-System/LegendaryOS-Installer
+--> asset    => legendaryos-installer-tui
+--> version  => bithk
+--> kind     => cli
+--> editions => [server]
+
+! ── Blue Environment (tylko edycja Blue) ─────────────────────────────────────
+-> blue-environment
+--> repo     => HackerOS-Linux-System/Blue-Environment
+--> asset    => blue-environment
+--> version  => manifest:Blue Environment
+--> kind     => session
+--> editions => [blue]
