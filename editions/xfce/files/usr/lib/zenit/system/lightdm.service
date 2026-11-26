@@ -1,0 +1,12 @@
+[Unit]
+Description=LightDM (Xfce)
+After=multi-user.target udevd.service dbus.service elogind.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/lightdm
+Restart=on-failure
+
+[Install]
+WantedBy=graphical.target
