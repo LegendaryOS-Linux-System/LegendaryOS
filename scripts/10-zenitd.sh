@@ -1,10 +1,6 @@
 #!/bin/sh
-# Włącza podstawowe jednostki zenitd offline (chroot obrazu). Wymaga zenitctl z kroku "zenitd".
+# Włącza jednostki wspólne dla wszystkich edycji (chroot obrazu). Wymaga zenitctl z kroku "zenitd".
 set -eu
-zenitctl enable udevd.service || true
-zenitctl enable getty@tty1.service || true
-zenitctl enable legendary-state.service
-zenitctl enable legendary-triggers.service
-zenitctl enable legendary-tools.service
-zenitctl enable NetworkManager.service || true
-ln -sf /usr/lib/zenit/system/graphical.target /etc/zenit/system/default.target
+for u in udevd getty@tty1 legendary-state legendary-triggers legendary-tools dbus polkit NetworkManager elogind; do
+  zenitctl enable "$u.service" || echo "ostrzeżenie: nie włączono $u.service" >&2
+done
