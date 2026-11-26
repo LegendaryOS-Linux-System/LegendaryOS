@@ -1,5 +1,3 @@
-sddm
-qt6-qtwayland
 mesa-dri-drivers
 mesa-vulkan-drivers
 mesa-libEGL
@@ -7,7 +5,18 @@ mesa-libgbm
 libglvnd
 xorg-x11-server-Xwayland
 pipewire
+pipewire-pulseaudio
 wireplumber
 xdg-desktop-portal
+xdg-user-dirs
 fontconfig
 google-noto-sans-fonts
+google-noto-emoji-fonts
+adwaita-icon-theme
+shared-mime-info
+xdg-utils
+NetworkManager-wifi
+NetworkManager-bluetooth
+bluez
+cups
+firefox
