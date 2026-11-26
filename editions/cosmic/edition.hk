@@ -1,0 +1,19 @@
+[edition]
+-> id              => cosmic
+-> name            => LegendaryOS Cosmic
+-> summary         => COSMIC (Wayland) z cosmic-greeter
+-> desktop         => cosmic
+-> display_manager => cosmic-greeter
+-> session         => cosmic.desktop
+-> installer       => gui
+-> graphical       => true
+-> default_target  => graphical
+! Etykieta ISO (volid, ≤32 znaki, bez spacji)
+-> iso_label       => LOS_COSMIC
+! Wspólne listy z package-list/ (base, hardware, legendary są zawsze); pakiety edycji: editions/cosmic/package-list/*.list
+-> lists           => [graphical]
+-> kernel_args     => quiet rhgb
+
+[tools]
+! Narzędzia z tools.hk, których ta edycja NIE pobiera (id z katalogu), np. [hco]
+-> exclude => []
