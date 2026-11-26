@@ -1,0 +1,11 @@
+sddm
+qt6-qtwayland
+gtk3
+webkit2gtk4.1
+libayatana-appindicator-gtk3
+librsvg2
+seatd
+wlr-randr
+xdg-desktop-portal-gtk
+labwc
+nautilus
