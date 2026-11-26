@@ -1,0 +1,19 @@
+[edition]
+-> id              => xfce
+-> name            => LegendaryOS Xfce
+-> summary         => Lekki Xfce 4 (X11) z LightDM
+-> desktop         => xfce
+-> display_manager => lightdm
+-> session         => xfce.desktop
+-> installer       => gui
+-> graphical       => true
+-> default_target  => graphical
+! Etykieta ISO (volid, ≤32 znaki, bez spacji)
+-> iso_label       => LOS_XFCE
+! Wspólne listy z package-list/ (base, hardware, legendary są zawsze); pakiety edycji: editions/xfce/package-list/*.list
+-> lists           => [graphical]
+-> kernel_args     => quiet rhgb
+
+[tools]
+! Narzędzia z tools.hk, których ta edycja NIE pobiera (id z katalogu), np. [hco]
+-> exclude => []
