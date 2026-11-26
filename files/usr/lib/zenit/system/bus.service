@@ -1,0 +1,10 @@
+[Unit]
+Description=D-Bus system message bus
+After=sysinit.target
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/dbus-uuidgen --ensure
+ExecStart=/usr/bin/dbus-daemon --system --nofork --nopidfile
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
