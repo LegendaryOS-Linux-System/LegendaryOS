@@ -1,0 +1,10 @@
+[Unit]
+Description=Polkit (autoryzacja)
+After=dbus.service
+Requires=dbus.service
+[Service]
+Type=simple
+ExecStart=/usr/lib/polkit-1/polkitd --no-debug
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
