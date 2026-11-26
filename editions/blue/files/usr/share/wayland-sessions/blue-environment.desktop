@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Blue Environment
+Comment=Środowisko graficzne znane z HackerOS - Blue Environment
+Exec=legendary run blue-environment
+Type=Application
