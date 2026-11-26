@@ -1,0 +1,9 @@
+[Unit]
+Description=NTP (chrony)
+After=network.target
+[Service]
+Type=simple
+ExecStart=/usr/sbin/chronyd -n
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
