@@ -1,0 +1,19 @@
+[edition]
+-> id              => server
+-> name            => LegendaryOS Server
+-> summary         => Bez środowiska graficznego: SSH, kontenery, instalator TUI
+-> desktop         => none
+-> display_manager => none
+-> session         => none
+-> installer       => tui
+-> graphical       => false
+-> default_target  => multi-user
+! Etykieta ISO (volid, ≤32 znaki, bez spacji)
+-> iso_label       => LOS_SERVER
+! Wspólne listy z package-list/ (base, hardware, legendary są zawsze); pakiety edycji: editions/server/package-list/*.list
+-> lists           => []
+-> kernel_args     => quiet console=tty0 console=ttyS0,115200n8
+
+[tools]
+! Narzędzia z tools.hk, których ta edycja NIE pobiera (id z katalogu), np. [hco]
+-> exclude => []
