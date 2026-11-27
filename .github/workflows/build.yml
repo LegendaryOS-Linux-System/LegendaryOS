@@ -1,75 +1,73 @@
 name: Build LegendaryOS
 
 # Ręcznie (Actions -> Build LegendaryOS -> Run workflow) wybierasz:
-#   * skąd wziąć legendaryos-builder: gotowa binarka z wydania albo budowa ze źródeł,
-#   * (przy budowie buildera ze źródeł) skąd wziąć kompilator H#: gotowa binarka albo
-#      klon https://github.com/HackerOS-Linux-System/H-Sharp.git i budowa ze źródeł,
-#   * Blue Environment: binarka z wydania (komputery / telefony) + skrypty blue i blue-dev w /usr/bin,
-#   * na czym bazuje LegendaryOS: HackerOS (Debian testing) albo Fedora Silverblue (atomowa),
-#   * środowisko graficzne (domyślnie z config.hk; np. blue-environment + display manager sdm).
-# Po wypchnięciu tagu `v*` budowa rusza z wartościami domyślnymi.
+#   * edycję:   plasma | xfce | gnome | cosmic | blue | server | all (wszystkie po kolei),
+#   * format:   iso | oci | both,
+#   * legendaryos-builder: gotowa binarka z wydania (wersja z Bit.hk buildera) albo budowa ze źródeł,
+#   * lepm i lpm (wymagane przez builder): gotowe binarki z wydań albo budowa ze źródeł.
+# Po wypchnięciu tagu `v*` budowa rusza z wartościami domyślnymi (plasma, iso+oci, builder z wydania).
+#
+# Binarki kompilatora H# i menedżera bit (potrzebne tylko przy budowie ze źródeł) są pobierane z adresów
+# w sekcji `env` — bez sprawdzania ich istnienia ani formatu.
+# Budowa jest wykonywana w kontenerze fedora:43 (--privileged) — tak wymaga tego builder (chroot, mount, podman).
 
 on:
   workflow_dispatch:
     inputs:
+      edition:
+        description: "Edycja LegendaryOS (all = wszystkie po kolei)"
+        type: choice
+        options:
+          - plasma
+          - xfce
+          - gnome
+          - cosmic
+          - blue
+          - server
+          - all
+        default: plasma
+      format:
+        description: "Co zbudować: ISO, obraz OCI czy oba"
+        type: choice
+        options:
+          - both
+          - iso
+          - oci
+        default: both
       builder_source:
-        description: "legendaryos-builder: gotowa binarka czy budowa ze źródeł?"
+        description: "legendaryos-builder: gotowa binarka z wydania czy budowa ze źródeł?"
         type: choice
         options:
           - release
           - source
         default: release
       builder_version:
-        description: "Wersja buildera (tag wydania / gałąź). `latest` = najnowsza"
+        description: "Wersja buildera. Puste = release: wersja z Bit.hk (main) | source: domyślna gałąź. Można podać tag/gałąź."
         type: string
-        default: latest
-      hsharp_source:
-        description: "H# (tylko gdy builder_source=source): gotowa binarka czy budowa ze źródeł (klon H-Sharp)?"
+        default: ""
+      tools_source:
+        description: "lepm i lpm: gotowe binarki z najnowszych wydań czy budowa ze źródeł?"
         type: choice
         options:
           - release
           - source
         default: release
-      hsharp_version:
-        description: "Wersja H# (tag wydania / gałąź). `latest` = najnowsza"
-        type: string
-        default: latest
-      blue_environment:
-        description: "Blue Environment z wydania GitHub: auto (gdy wybrano blue-environment) | desktop | phones | skip"
-        type: choice
-        options:
-          - auto       # pobierz, jeśli środowisko = blue-environment (komputery; telefony gdy target phone*)
-          - desktop    # binarka blue-environment (komputery)
-          - phones     # binarka blue-environment-phones (telefony)
-          - skip       # nie pobieraj (pakiet z repozytorium)
-        default: auto
-      blue_version:
-        description: "Wersja Blue Environment (tag wydania). `latest` = najnowsza"
-        type: string
-        default: latest
-      base:
-        description: "Na czym bazuje LegendaryOS?"
-        type: choice
-        options:
-          - hackeros   # klasyczny LegendaryOS: HackerOS / Debian testing
-          - fedora     # LegendaryOS na Fedora Silverblue (atomowa)
-        default: hackeros
-      desktop:
-        description: "Środowisko graficzne (config = wartość z config.hk)"
-        type: choice
-        options:
-          - config
-          - blue-environment
-          - xfce
-          - gnome
-          - kde
-          - cosmic       # tylko baza fedora
-          - none
-        default: config
-      target:
-        description: "Filtr celów (puste = wszystkie z config.hk), np. pc albo pc:amd64"
+      zenitd_bin_url:
+        description: "Opcjonalnie: URL gotowej binarki zenitd (ZENITD_BIN). Puste = builder zbuduje zenitd sam."
         type: string
         default: ""
+      allow_missing:
+        description: "Buduj mimo brakujących wydań narzędzi z /tools (--allow-missing)"
+        type: boolean
+        default: false
+      keep_going:
+        description: "Przy edycji `all`: nie przerywaj po błędzie jednej edycji (--keep-going)"
+        type: boolean
+        default: true
+      strict:
+        description: "Ostrzeżenia są błędami (--strict)"
+        type: boolean
+        default: false
       publish:
         description: "Opublikuj artefakty jako wydanie GitHub?"
         type: boolean
@@ -81,141 +79,189 @@ on:
 permissions:
   contents: write    # publikacja wydania
 
+concurrency:
+  group: legendaryos-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
+  # wartości domyślne dla uruchomienia z tagu (wtedy `inputs` jest puste)
+  LO_EDITION: ${{ inputs.edition || 'plasma' }}
+  LO_FORMAT: ${{ inputs.format || 'both' }}
   BUILDER_SOURCE: ${{ inputs.builder_source || 'release' }}
-  BUILDER_VERSION: ${{ inputs.builder_version || 'latest' }}
-  HSHARP_SOURCE: ${{ inputs.hsharp_source || 'release' }}
-  HSHARP_VERSION: ${{ inputs.hsharp_version || 'latest' }}
-  BLUE_MODE: ${{ inputs.blue_environment || 'auto' }}
-  BLUE_VERSION: ${{ inputs.blue_version || 'latest' }}
-  LO_BASE: ${{ inputs.base || 'hackeros' }}
-  LO_DESKTOP: ${{ inputs.desktop || 'config' }}
-  LO_TARGET: ${{ inputs.target || '' }}
-  LEGENDARYOS_TOKEN: ${{ secrets.LEGENDARYOS_TOKEN }}
+  BUILDER_VERSION: ${{ inputs.builder_version || '' }}
+  TOOLS_SOURCE: ${{ inputs.tools_source || 'release' }}
+  ZENITD_BIN_URL: ${{ inputs.zenitd_bin_url || '' }}
+  LO_ALLOW_MISSING: ${{ inputs.allow_missing && 'true' || 'false' }}
+  LO_KEEP_GOING: ${{ github.event_name == 'workflow_dispatch' && inputs.keep_going && 'true' || 'false' }}
+  LO_STRICT: ${{ inputs.strict && 'true' || 'false' }}
+
+  # kompilator H# i bit (tylko przy budowie ze źródeł)
+  HSHARP_URL: https://github.com/HackerOS-Linux-System/H-Sharp/releases/download/v1.0/hsharp
+  BIT_URL: https://github.com/HackerOS-Linux-System/bit/releases/download/v0.3/bit
+  HSHARP_STD_REF: v1.0
+
+  ORG: LegendaryOS-Linux-System
+  NO_COLOR: "1"
+  HSHARP_COLOR: "0"
+  # w kontenerze (overlayfs na overlayfs) podman nie ma jak użyć sterownika overlay
+  STORAGE_DRIVER: vfs
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  # ── Baza HackerOS: Debian testing, live-build ────────────────────────────
-  build-hackeros:
-    name: LegendaryOS (HackerOS / Debian testing)
-    if: ${{ (inputs.base || 'hackeros') == 'hackeros' }}
+  build:
+    name: LegendaryOS (${{ inputs.edition || 'plasma' }} · ${{ inputs.format || 'both' }})
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     container:
-      image: debian:testing
+      image: fedora:43
       options: --privileged
     steps:
-      - name: Zależności systemowe
+      - name: "Zależności systemowe (host budowy, Fedora)"
         run: |
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            git curl ca-certificates sudo xz-utils tar g++ \
-            live-build debootstrap squashfs-tools xorriso mtools dosfstools e2fsprogs parted rsync \
-            grub-pc-bin grub-efi-amd64-bin grub-common efibootmgr \
-            qemu-user-static binfmt-support
-
-      - uses: actions/checkout@v4
-
-      - name: legendaryos-builder (${{ env.BUILDER_SOURCE }})
-        uses: ./.github/actions/get-builder
-        with:
-          source: ${{ env.BUILDER_SOURCE }}
-          version: ${{ env.BUILDER_VERSION }}
-          hsharp_source: ${{ env.HSHARP_SOURCE }}
-          hsharp_version: ${{ env.HSHARP_VERSION }}
-
-      - name: Blue Environment (binarka + blue + blue-dev → /usr/bin)
-        uses: ./.github/actions/get-blue-environment
-        with:
-          mode: ${{ env.BLUE_MODE }}
-          version: ${{ env.BLUE_VERSION }}
-          desktop: ${{ env.LO_DESKTOP }}
-          target: ${{ env.LO_TARGET }}
-
-      - name: Walidacja projektu
-        run: |
-          ARGS=(--base hackeros)
-          if [ "$LO_DESKTOP" != "config" ]; then ARGS+=(--desktop "$LO_DESKTOP"); fi
-          legendaryos-builder validate . "${ARGS[@]}"
-
-      - name: Budowa
-        run: |
-          ARGS=(--base hackeros)
-          if [ "$LO_DESKTOP" != "config" ]; then ARGS+=(--desktop "$LO_DESKTOP"); fi
-          if [ -n "$LO_TARGET" ]; then ARGS+=(--target "$LO_TARGET"); fi
-          legendaryos-builder build . "${ARGS[@]}"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: legendaryos-hackeros
-          path: build/out/*
-          if-no-files-found: error
-
-      - name: Wydanie GitHub
-        if: ${{ inputs.publish || startsWith(github.ref, 'refs/tags/') }}
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/out/*
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('legendaryos-hackeros-{0}', github.run_number) }}
-          name: LegendaryOS (HackerOS) ${{ github.run_number }}
-
-  # ── Baza Fedora: Silverblue (atomowa), podman + bootc-image-builder ──────
-  build-fedora:
-    name: LegendaryOS (Fedora Silverblue)
-    if: ${{ (inputs.base || 'hackeros') == 'fedora' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Zwolnij miejsce na dysku
-        run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL || true
+          set -euo pipefail
+          dnf -y install --setopt=install_weak_deps=False \
+            git curl ca-certificates tar gzip xz findutils which gawk bsdtar zstd rpm \
+            squashfs-tools xorriso mtools dosfstools e2fsprogs util-linux \
+            grub2-tools-extra grub2-tools-minimal grub2-pc-modules grub2-efi-x64-modules \
+            podman dracut \
+            gcc-c++ make cmake pkgconf-pkg-config libsolv-devel zlib-devel libzstd-devel xz-devel bzip2-devel expat-devel
           df -h /
 
-      - name: Zależności systemowe
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends podman git curl ca-certificates xz-utils tar g++ \
-            qemu-user-static binfmt-support
-
       - uses: actions/checkout@v4
 
+      # ── H# + bit: tylko gdy cokolwiek budujemy ze źródeł ──────────────────────────────
+      - name: H# (hsharp) i bit z wydań
+        if: ${{ env.BUILDER_SOURCE == 'source' || env.TOOLS_SOURCE == 'source' }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o /tmp/hsharp "$HSHARP_URL"
+          curl -fsSL --retry 3 -o /tmp/bit "$BIT_URL"
+          install -m 0755 /tmp/hsharp /usr/local/bin/hsharp
+          ln -sf /usr/local/bin/hsharp "/usr/local/bin/h#"
+          install -m 0755 /tmp/bit /usr/local/bin/bit
+
+          SRC="${RUNNER_TEMP:-/tmp}/h-sharp"
+          git clone --depth 1 --branch "$HSHARP_STD_REF" https://github.com/HackerOS-Linux-System/H-Sharp.git "$SRC" \
+            || git clone --depth 1 https://github.com/HackerOS-Linux-System/H-Sharp.git "$SRC"
+          rm -rf "/usr/lib/HackerOS/H#/std"
+          mkdir -p "/usr/lib/HackerOS/H#/std"
+          cp -a "$SRC/std/." "/usr/lib/HackerOS/H#/std/"
+
+      # ── legendaryos-builder ───────────────────────────────────────────────────────────
       - name: legendaryos-builder (${{ env.BUILDER_SOURCE }})
-        uses: ./.github/actions/get-builder
-        with:
-          source: ${{ env.BUILDER_SOURCE }}
-          version: ${{ env.BUILDER_VERSION }}
-          hsharp_source: ${{ env.HSHARP_SOURCE }}
-          hsharp_version: ${{ env.HSHARP_VERSION }}
-
-      - name: Blue Environment (binarka + blue + blue-dev → /usr/bin)
-        uses: ./.github/actions/get-blue-environment
-        with:
-          mode: ${{ env.BLUE_MODE }}
-          version: ${{ env.BLUE_VERSION }}
-          desktop: ${{ env.LO_DESKTOP }}
-          target: ${{ env.LO_TARGET }}
-
-      - name: Walidacja projektu
         run: |
-          ARGS=(--base fedora)
-          if [ "$LO_DESKTOP" != "config" ]; then ARGS+=(--desktop "$LO_DESKTOP"); fi
-          legendaryos-builder validate . "${ARGS[@]}"
+          set -euo pipefail
+          BUILDER_REPO="https://github.com/${ORG}/LegendaryOS-Builder"
 
-      - name: Budowa (podman build + bootc-image-builder)
+          if [ "$BUILDER_SOURCE" = "release" ]; then
+            VER="$BUILDER_VERSION"
+            if [ -z "$VER" ]; then
+              # wersja z Bit.hk (https://github.com/LegendaryOS-Linux-System/LegendaryOS-Builder/blob/main/Bit.hk)
+              curl -fsSL --retry 3 -o /tmp/builder-Bit.hk "https://raw.githubusercontent.com/${ORG}/LegendaryOS-Builder/main/Bit.hk"
+              VER="$(awk '$1=="->" && $2=="version" && $3=="=>" {print $4; exit}' /tmp/builder-Bit.hk)"
+            fi
+            echo "legendaryos-builder: wersja ${VER}"
+            curl -fsSL --retry 3 -o /usr/local/bin/legendaryos-builder \
+              "${BUILDER_REPO}/releases/download/${VER}/legendaryos-builder"
+            chmod 0755 /usr/local/bin/legendaryos-builder
+          else
+            SRC="${RUNNER_TEMP:-/tmp}/legendaryos-builder-src"
+            rm -rf "$SRC"
+            if [ -n "$BUILDER_VERSION" ]; then
+              git clone --depth 1 --branch "$BUILDER_VERSION" "${BUILDER_REPO}.git" "$SRC"
+            else
+              git clone --depth 1 "${BUILDER_REPO}.git" "$SRC"
+            fi
+            git -C "$SRC" log -1 --format='LegendaryOS-Builder @ %h  %s'
+            ( cd "$SRC" && bit install && bit build --release )
+            BIN="$SRC/cache/build/release/legendaryos-builder"
+            [ -f "$BIN" ] || BIN="$(find "$SRC/cache/build/release" -maxdepth 2 -type f -perm -u+x ! -name '*.so' ! -name '*.a' ! -name '*.o' | head -n 1)"
+            install -m 0755 "$BIN" /usr/local/bin/legendaryos-builder
+          fi
+          legendaryos-builder version || true
+
+      # ── lepm (pakiety rootfs) i lpm (do obrazu) ────────────────────────────────────────
+      - name: lepm i lpm (${{ env.TOOLS_SOURCE }})
         run: |
-          ARGS=(--base fedora)
-          if [ "$LO_DESKTOP" != "config" ]; then ARGS+=(--desktop "$LO_DESKTOP"); fi
-          if [ -n "$LO_TARGET" ]; then ARGS+=(--target "$LO_TARGET"); fi
-          # obraz musi trafić do magazynu roota, skąd czyta go bootc-image-builder
-          sudo -E legendaryos-builder build . "${ARGS[@]}"
+          set -euo pipefail
+          for T in lepm lpm; do
+            if [ "$TOOLS_SOURCE" = "release" ]; then
+              curl -fsSL --retry 3 -o "/usr/local/bin/$T" \
+                "https://github.com/${ORG}/${T}/releases/latest/download/${T}"
+              chmod 0755 "/usr/local/bin/$T"
+            else
+              SRC="${RUNNER_TEMP:-/tmp}/${T}-src"
+              rm -rf "$SRC"
+              git clone --depth 1 "https://github.com/${ORG}/${T}.git" "$SRC"
+              ( cd "$SRC" && bit install && bit build --release )
+              BIN="$SRC/cache/build/release/$T"
+              [ -f "$BIN" ] || BIN="$(find "$SRC/cache/build/release" -maxdepth 2 -type f -perm -u+x ! -name '*.so' ! -name '*.a' ! -name '*.o' | head -n 1)"
+              install -m 0755 "$BIN" "/usr/local/bin/$T"
+            fi
+          done
+          echo "LPM_BIN=/usr/local/bin/lpm" >> "$GITHUB_ENV"
+
+      - name: zenitd (gotowa binarka)
+        if: ${{ env.ZENITD_BIN_URL != '' }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o /usr/local/bin/zenitd "$ZENITD_BIN_URL"
+          chmod 0755 /usr/local/bin/zenitd
+          echo "ZENITD_BIN=/usr/local/bin/zenitd" >> "$GITHUB_ENV"
+
+      # ── walidacja i budowa ────────────────────────────────────────────────────────────
+      - name: Narzędzia budowy (doctor) i walidacja projektu
+        run: |
+          set -euo pipefail
+          legendaryos-builder doctor || true
+          legendaryos-builder validate . --edition "$LO_EDITION"
+
+      - name: Budowa (edycja ${{ env.LO_EDITION }}, format ${{ env.LO_FORMAT }})
+        run: |
+          set -euo pipefail
+          ARGS=(--edition "$LO_EDITION" --target "$LO_FORMAT")
+          if [ "$LO_ALLOW_MISSING" = "true" ]; then ARGS+=(--allow-missing); fi
+          if [ "$LO_STRICT" = "true" ];        then ARGS+=(--strict); fi
+          if [ "$LO_KEEP_GOING" = "true" ] && [ "$LO_EDITION" = "all" ]; then ARGS+=(--keep-going); fi
+          legendaryos-builder build . "${ARGS[@]}"
+
+      - name: Zbierz wyniki
+        if: ${{ always() }}
+        run: |
+          set -u
+          mkdir -p dist logs
+          for d in build/*/out; do
+            [ -d "$d" ] || continue
+            ed="$(basename "$(dirname "$d")")"
+            [ -f "$d/build.log" ] && cp -f "$d/build.log" "logs/$ed-build.log"
+            for f in "$d"/*.iso "$d"/*.oci.tar "$d"/*.sha256 "$d"/build-info.hk "$d"/tools.lock.hk; do
+              [ -f "$f" ] || continue
+              case "$(basename "$f")" in
+                build-info.hk|tools.lock.hk) cp -f "$f" "dist/$ed-$(basename "$f")" ;;
+                *) cp -f "$f" "dist/" ;;
+              esac
+            done
+          done
+          ls -lh dist logs || true
 
       - uses: actions/upload-artifact@v4
         with:
-          name: legendaryos-fedora
-          path: build/out/*
+          name: legendaryos-${{ inputs.edition || 'plasma' }}-${{ inputs.format || 'both' }}
+          path: dist/*
           if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: legendaryos-logi
+          path: logs/*
+          if-no-files-found: ignore
 
       - name: Wydanie GitHub
         if: ${{ inputs.publish || startsWith(github.ref, 'refs/tags/') }}
         uses: softprops/action-gh-release@v2
         with:
-          files: build/out/*
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('legendaryos-fedora-{0}', github.run_number) }}
-          name: LegendaryOS (Fedora Silverblue) ${{ github.run_number }}
+          files: dist/*
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('legendaryos-{0}-{1}', inputs.edition || 'plasma', github.run_number) }}
+          target_commitish: ${{ github.sha }}
+          name: LegendaryOS ${{ inputs.edition || 'plasma' }} ${{ github.run_number }}
